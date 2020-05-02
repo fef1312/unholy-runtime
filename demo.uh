@@ -1,0 +1,11 @@
+
+let variable: int;
+
+func main(): int {
+    variable = 2;
+    if (variable > 0) {
+        return variable;
+    } else {
+        return 1;
+    }
+}
