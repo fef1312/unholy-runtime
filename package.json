@@ -1,0 +1,26 @@
+{
+  "name": "unholy-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A PoC runtime for the Unholy Language",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node --files ./src/start.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/sandtler/unholy-runtime.git"
+  },
+  "author": "Felix Kopp <sandtler@sandtler.club>",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/sandtler/unholy-runtime/issues"
+  },
+  "homepage": "https://github.com/sandtler/unholy-runtime#readme",
+  "devDependencies": {
+    "@types/node": "^13.13.4",
+    "ts-node": "^8.9.1",
+    "typescript": "^3.8.3"
+  }
+}
