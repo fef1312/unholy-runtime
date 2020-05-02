@@ -28,6 +28,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+import { asyncReadFileStr } from "./utils/fs";
+import ISemanticElement from "./types/semantic-element";
+import Scanner from "./lexer/scanner";
+import { SyntaxKind } from "./types/syntax";
+
 /**
  * Program entry point
  *
@@ -35,6 +40,32 @@
  * @returns The program exit code
  */
 export default async function main(argv: string[]): Promise<number> {
-    console.log("hello, world");
+    if (argv.length < 2 || argv[1] === "--help" || argv[1] === "-h" || argv[1] === "-?") {
+        console.log(
+`Unholy runtime version ${require("../package.json").version}
+Copyright (c) 2020 Felix Kopp <sandtler@sandtler.club>
+Source code available at <https://github.com/sandtler/unholy-runtime>
+
+This program contains code from the TypeScript compiler.
+See <https://www.github.com/microsoft/TypeScript> for details and its license.
+`);
+        return 0;
+    }
+
+    const text = await asyncReadFileStr(argv[1]);
+    const scanner = new Scanner(text);
+    let element: ISemanticElement;
+    do {
+        element = scanner.nextToken();
+        if (element.isReservedWord()) {
+            console.log(`\x1b[0;35m${element.rawText}\x1b[0m`);
+        } else if (element.kind === SyntaxKind.Identifier) {
+            console.log(`\x1b[0;36m${element.rawText}\x1b[0m`);
+        } else if (element.kind === SyntaxKind.IntegerLiteral) {
+            console.log(`\x1b[0;32m${element.rawText}\x1b[0m`);
+        } else {
+            console.log(element.rawText);
+        }
+    } while (element.kind !== SyntaxKind.EndOfFileToken);
     return 0;
 }
