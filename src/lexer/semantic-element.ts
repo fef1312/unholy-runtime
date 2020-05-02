@@ -30,6 +30,8 @@
 
 import type ISemanticElement from "../types/semantic-element";
 import { SyntaxKind } from "../types/syntax";
+import { tokenToString } from "./token-maps";
+import { AssertionError } from "assert";
 
 export default class SemanticElement<T extends SyntaxKind> implements ISemanticElement<T> {
 
@@ -41,7 +43,16 @@ export default class SemanticElement<T extends SyntaxKind> implements ISemanticE
     public readonly rawText: string;
     public value?: string;
 
-    public constructor(kind: T, line: number, column: number, rawText: string) {
+    public constructor(kind: T, line: number, column: number, rawText?: string) {
+        if (rawText === undefined) {
+            rawText = tokenToString(kind);
+            if (rawText === undefined) {
+                throw new AssertionError({
+                    message: "Could not obtain token text",
+                });
+            }
+        }
+
         this.kind = kind;
         this.line = line;
         this.column = column;
