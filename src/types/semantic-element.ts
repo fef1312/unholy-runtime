@@ -36,7 +36,7 @@ import type { SyntaxKind } from "./syntax";
 export default interface ISemanticElement<S extends SyntaxKind = SyntaxKind> {
 
     /** The kind of this syntactic element. */
-    readonly kind: S;
+    kind: S;
     /** The line number of this element's first character, starting from 1. */
     readonly line: number;
     /** The column number of this element's first character, starting from 1. */

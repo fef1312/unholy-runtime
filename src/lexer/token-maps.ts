@@ -31,6 +31,74 @@
 import { KeywordSyntaxKind, SyntaxKind } from "../types/syntax";
 import { createMapFromTemplate, createReverseMap, MapLike } from "../utils/map";
 
+/** An array of all future-reserved keywords. */
+const futureReservedWords: ReadonlyArray<string> = [
+    "abstract",
+    "async",
+    "atomic",
+    "attribute",
+    "await",
+    "break",
+    "class",
+    "do",
+    "byte",
+    "char",
+    "complex",
+    "continue",
+    "declare",
+    "double",
+    "enum",
+    "export",
+    "exposed",
+    "extends",
+    "extern",
+    "final",
+    "float",
+    "for",
+    "from",
+    "goto",
+    "implements",
+    "import",
+    "inline",
+    "interface",
+    "local",
+    "long",
+    "namespace",
+    "new",
+    "null",
+    "of",
+    "operator",
+    "private",
+    "protected",
+    "public",
+    "short",
+    "static",
+    "struct",
+    "super",
+    "synchronized",
+    "string",
+    "this",
+    "type",
+    "ubyte",
+    "uint",
+    "ulong",
+    "ushort",
+    "vec2",
+    "vec3",
+    "vec4",
+    "while",
+    "with",
+];
+
+/**
+ * Return whether `identifier` is a keyword that is reserved for future use.
+ *
+ * @param identifier The keyword.
+ */
+export function isFutureReserveWord(identifier: string): boolean {
+    return futureReservedWords.indexOf(identifier) !== -1;
+}
+
 const textToKeywordObj: MapLike<KeywordSyntaxKind> = {
     bool:       SyntaxKind.BoolKeyword,
     else:       SyntaxKind.ElseKeyword,

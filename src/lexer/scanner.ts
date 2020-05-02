@@ -33,7 +33,7 @@ import type ISemanticElement from "../types/semantic-element";
 import CharCodes from "../types/char-codes";
 import SemanticElement from "./semantic-element";
 import { SyntaxKind, KeywordSyntaxKind } from "../types/syntax";
-import { stringToKeyword } from "./token-maps";
+import { stringToKeyword, isFutureReserveWord } from "./token-maps";
 import { UnholySyntaxError } from "../utils/errors";
 import { isIdentifierStart, charSize, isIdentifierPart } from "../utils/text";
 
@@ -199,14 +199,23 @@ export default class Scanner implements IScanner {
             let stillIsIdentifier: boolean;
 
             do {
-                this.pos += charSize(char);
-                char = this.text.codePointAt(this.pos) ! ;
-                stillIsIdentifier = isIdentifierPart(char);
+                char = this.text.codePointAt(this.pos + 1) ! ;
+                if ( (stillIsIdentifier = isIdentifierPart(char)) ) {
+                    this.pos += charSize(char);
+                }
             } while (this.pos < this.end && stillIsIdentifier);
 
-            const value = this.text.substring(identifierStart, this.pos);
-            this.pos--;
-            return this.makeElem(this.getIentifierToken(value), value);
+            const value = this.text.substring(identifierStart, this.pos + 1);
+            const elem = this.makeElem<SyntaxKind>(this.getIentifierToken(value), value);
+
+            if (elem.kind === SyntaxKind.Identifier && isFutureReserveWord(value)) {
+                elem.kind = SyntaxKind.Unknown;
+                throw new UnholySyntaxError(
+                    `"${value}" is a reserved keyword`,
+                    elem as ISemanticElement<SyntaxKind.Unknown>
+                );
+            }
+            return elem;
         }
 
         return null;
