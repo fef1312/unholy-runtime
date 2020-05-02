@@ -1,5 +1,5 @@
 /**
- * AST node types.
+ * All statement nodes.
  * @packageDocumentation
  *
  * @license
@@ -28,37 +28,35 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+import type { Node } from "./node";
+import type { Expression } from "./expression";
 import type { SyntaxKind } from "../syntax";
-import type { Statement } from "./statement";
 
-export const enum NodeFlags {
-    None                = 0 | 0,
-    HasError            = 1 << 1,
-    ChildHasError       = 1 << 2,
+export interface Statement extends Node {
+    _statementBrand: any;
 }
 
-/** Any node in the AST. */
-export interface Node {
-    line: number;
-    column: number;
-    kind: SyntaxKind;
-    flags: NodeFlags;
-    /**
-     * The parent node.
-     * Every node that is not a {@linkcode SourceFile} has a parent.
-     */
-    parent?: Node;
-}
-
-/** The top-level node in the AST. */
-export interface SourceFile extends Node {
-    kind: SyntaxKind.SourceFile;
-    fileName: string;
+export interface BlockStatement extends Statement {
+    kind: SyntaxKind.BlockStatement;
     statements: Statement[];
-    parent: undefined;
 }
 
-export interface Identifier extends Node {
-    name: string;
-    parent: Node;
+export interface EmptyStatement extends Statement {
+    kind: SyntaxKind.EmptyStatement;
+}
+
+export interface ExpressionStatement extends Statement {
+    kind: SyntaxKind.ExpressionStatement;
+}
+
+export interface IfStatement extends Statement {
+    kind: SyntaxKind.IfStatement;
+    condition: Expression;
+    thenStatement: Statement;
+    elseStatement: Statement;
+}
+
+export interface ReturnStatement extends Statement {
+    kind: SyntaxKind.ReturnStatement;
+    expression?: Expression;
 }
