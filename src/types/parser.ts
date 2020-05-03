@@ -52,7 +52,9 @@ export const enum ParsingContext {
     VarDeclarations,
     /** A function declaration. */
     FuncDeclarations,
-    /** A (function) signature decclaration. */
+    /** A parameter list declaration (for functions) */
+    ParameterDeclarations,
+    /** Currently unused */
     SignatureDeclarations,
     /** Expressions in a parameter list when calling functions. */
     ArgExpressions,
