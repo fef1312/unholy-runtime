@@ -105,10 +105,10 @@ export default class Scanner implements IScanner {
         this.storeState();
 
         const ret = fn();
-        if (!ret) {
-            this.restoreState();
-        } else {
+        if (ret) {
             this.popState();
+        } else {
+            this.restoreState();
         }
 
         return ret;
@@ -117,14 +117,7 @@ export default class Scanner implements IScanner {
     public nextToken(): ISemanticElement {
         while (this.pos < this.end) {
             this.tokenStart = this.pos;
-            let ret: ISemanticElement | null;
-
-            try {
-                ret = this.nextTokenSingle();
-            } finally {
-                this.pos++;
-            }
-
+            const ret = this.nextTokenSingle();
             if (ret !== null) {
                 return ret;
             }
@@ -144,38 +137,50 @@ export default class Scanner implements IScanner {
                 );
 
             case CharCodes.LineFeed:
+                this.pos++;
                 this.line++;
-                this.lineStart = this.pos + 1;
-                /* fall through */
+                this.lineStart = this.pos;
+                break;
 
             case CharCodes.Space:
-                while (this.text.charCodeAt(this.pos + 1) === CharCodes.Space) {
+            case CharCodes.Tab:
+                let nextChar = this.text.charCodeAt(this.pos);
+                while (nextChar === CharCodes.Space || nextChar === CharCodes.Tab) {
                     this.pos++;
+                    nextChar = this.text.charCodeAt(this.pos);
                 }
                 return null;
 
             case CharCodes.OpenBrace:
+                this.pos++;
                 return this.makeElem(SyntaxKind.OpenBraceToken);
 
             case CharCodes.CloseBrace:
+                this.pos++;
                 return this.makeElem(SyntaxKind.CloseBraceToken);
 
             case CharCodes.OpenParen:
+                this.pos++;
                 return this.makeElem(SyntaxKind.OpenParenToken);
 
             case CharCodes.CloseParen:
+                this.pos++;
                 return this.makeElem(SyntaxKind.CloseParenToken);
 
             case CharCodes.Semicolon:
+                this.pos++;
                 return this.makeElem(SyntaxKind.SemicolonToken);
 
             case CharCodes.Comma:
+                this.pos++;
                 return this.makeElem(SyntaxKind.CommaToken);
 
             case CharCodes.Colon:
+                this.pos++;
                 return this.makeElem(SyntaxKind.ColonToken);
 
             case CharCodes.Equals:
+                this.pos++;
                 if (this.text.charCodeAt(this.pos + 1) === CharCodes.Equals) {
                     this.pos++;
                     return this.makeElem(SyntaxKind.EqualsEqualsToken);
@@ -183,15 +188,19 @@ export default class Scanner implements IScanner {
                 return this.makeElem(SyntaxKind.EqualsToken);
 
             case CharCodes.Plus:
+                this.pos++;
                 return this.makeElem(SyntaxKind.PlusToken);
 
             case CharCodes.Minus:
+                this.pos++;
                 return this.makeElem(SyntaxKind.MinusToken);
 
             case CharCodes.LessThan:
+                this.pos++;
                 return this.makeElem(SyntaxKind.LessThanToken);
 
             case CharCodes.GreaterThan:
+                this.pos++;
                 return this.makeElem(SyntaxKind.GreaterThanToken);
 
             case CharCodes._0:
@@ -214,14 +223,13 @@ export default class Scanner implements IScanner {
             let stillIsIdentifier: boolean;
 
             do {
-                char = this.text.codePointAt(this.pos + 1) ! ;
-                if ( (stillIsIdentifier = isIdentifierPart(char)) ) {
-                    this.pos += charSize(char);
-                }
-            } while (this.pos < this.end && stillIsIdentifier);
+                this.pos += charSize(char);
+                char = this.text.codePointAt(this.pos) ! ;
+                stillIsIdentifier = isIdentifierPart(char);
+            } while (stillIsIdentifier && this.pos < this.end);
 
-            const value = this.text.substring(identifierStart, this.pos + 1);
-            const elem = this.makeElem<SyntaxKind>(this.getIentifierToken(value), value);
+            const value = this.text.substring(identifierStart, this.pos);
+            const elem = this.makeElem<SyntaxKind>(this.getIdentifierToken(value), value);
 
             if (elem.kind === SyntaxKind.Identifier && isFutureReserveWord(value)) {
                 elem.kind = SyntaxKind.Unknown;
@@ -250,7 +258,7 @@ export default class Scanner implements IScanner {
 
         while (canContinue) {
             /* `break` will end this loop (see below), `continue` makes it go on */
-            switch (this.text.charCodeAt(this.pos + 1)) {
+            switch (this.text.charCodeAt(this.pos)) {
                 case CharCodes.f:
                 case CharCodes.e:
                 case CharCodes.d:
@@ -296,14 +304,14 @@ export default class Scanner implements IScanner {
             canContinue = false;
         }
 
-        return this.text.substring(start, this.pos + 1);
+        return this.text.substring(start, this.pos);
     }
 
     /**
      * If `str` is a keyword, return the {@linkcode KeywordSyntaxKind}, and if not return
      * {@linkcode SyntaxKind.Identifier}.
      */
-    private getIentifierToken(str: string): SyntaxKind.Identifier | KeywordSyntaxKind {
+    private getIdentifierToken(str: string): SyntaxKind.Identifier | KeywordSyntaxKind {
         /* keywords always start with a lowercase character from a-z */
         if (str.charCodeAt(0) >= CharCodes.a && str.charCodeAt(0) <= CharCodes.z) {
             const keyword = stringToKeyword(str);
