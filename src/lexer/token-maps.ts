@@ -82,6 +82,7 @@ const futureReservedWords: ReadonlyArray<string> = [
     "ubyte",
     "uint",
     "ulong",
+    "union",
     "ushort",
     "vec2",
     "vec3",
