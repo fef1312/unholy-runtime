@@ -186,10 +186,12 @@ export default class Parser implements IParser {
 
         /* Parameter list */
         this.consume(SyntaxKind.OpenParenToken);
-        if (!this.consumeOptional(SyntaxKind.CloseParenToken)) {
+        if (this.consumeOptional(SyntaxKind.CloseParenToken)) {
+            node.params = [];
+        } else {
             this.pushContext(ParsingContext.ParameterDeclarations);
             node.params = this.parseDelimitedList(
-                this.parseParameterDeclaration,
+                () => this.parseParameterDeclaration(),
                 SyntaxKind.CloseParenToken
             );
             this.popContext();
@@ -230,7 +232,7 @@ export default class Parser implements IParser {
 
     private parseIdentifier(): Identifier {
         const node = this.makeIdentifier(this.consume(SyntaxKind.Identifier));
-        node.name = this.token.value ! ;
+        node.name = this.token.rawText;
         return this.finalizeNode(node);
     }
 
