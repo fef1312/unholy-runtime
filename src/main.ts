@@ -28,10 +28,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-import { asyncReadFileStr } from "./utils/fs";
-import ISemanticElement from "./types/semantic-element";
-import Scanner from "./lexer/scanner";
-import { SyntaxKind } from "./types/syntax";
+import Parser from "./parser/parser";
+import astWalk from "./utils/ast-walk";
+
+interface ASTLine {
+    line: string;
+    depth: number;
+}
 
 /**
  * Program entry point
@@ -52,20 +55,87 @@ See <https://www.github.com/microsoft/TypeScript> for details and its license.
         return 0;
     }
 
-    const text = await asyncReadFileStr(argv[1]);
-    const scanner = new Scanner(text);
-    let element: ISemanticElement;
-    do {
-        element = scanner.nextToken();
-        if (element.isReservedWord()) {
-            console.log(`\x1b[0;35m${element.rawText}\x1b[0m`);
-        } else if (element.kind === SyntaxKind.Identifier) {
-            console.log(`\x1b[0;36m${element.rawText}\x1b[0m`);
-        } else if (element.kind === SyntaxKind.IntegerLiteral) {
-            console.log(`\x1b[0;32m${element.rawText}\x1b[0m`);
+    const parser = new Parser();
+    const sourceFile = await parser.parseFile(argv[1]);
+    let lines: ASTLine[] = [];
+
+    astWalk(sourceFile, (node, depth, name, leaf) => {
+        if (name === undefined) {
+            lines.push({
+                line: "<child>: " + name,
+                depth: depth,
+            });
         } else {
-            console.log(element.rawText);
+            lines.push({
+                line: leaf + ": " + name,
+                depth: depth,
+            });
         }
-    } while (element.kind !== SyntaxKind.EndOfFileToken);
+    });
+
+    printAST(lines);
     return 0;
+}
+
+function printAST(lines: ASTLine[]) {
+    console.log("┌ Program")
+    const countPerDepth: number[] = [];
+    for (const line of lines) {
+        if (countPerDepth[line.depth] === undefined) {
+            countPerDepth[line.depth] = 1;
+        } else {
+            countPerDepth[line.depth]++;
+        }
+    }
+
+    const lastIndicesPerDepth: number[] = [];
+    for (let i = 0; i < lines.length; i++) {
+        const curr = lines[i];
+        const next = lines[i + 1];
+
+        // if (curr.depth === 0) {
+        //     console.log(curr.line);
+        //     continue;
+        // }
+
+        let unicodeArt: string = "";
+        for (let j = 0; j < curr.depth; j++) {
+            if (countPerDepth[j] > 0 && !asdf(lastIndicesPerDepth[j], lines)) {
+                unicodeArt += "│ ";
+            } else {
+                unicodeArt += "  ";
+            }
+        }
+
+        if (--countPerDepth[curr.depth] === 0 || next?.depth < curr.depth || asdf(i, lines)) {
+            unicodeArt += "└";
+        } else {
+            unicodeArt += "├";
+        }
+
+        unicodeArt += "─";
+
+        if (next?.depth > curr.depth) {
+            unicodeArt += "┬";
+        } else {
+            unicodeArt += "─";
+        }
+
+        console.log(unicodeArt + " " + curr.line);
+        lastIndicesPerDepth[curr.depth] = i;
+    }
+
+}
+
+function asdf(index: number, lines: ASTLine[]): boolean {
+    for (let i = index + 1; i < lines.length; i++) {
+        if (lines[i].depth < lines[index].depth) {
+            return true;
+        }
+        if (lines[i].depth === lines[index].depth) {
+            return false;
+        }
+    }
+
+    return true; /* This should never be reachable */
 }
