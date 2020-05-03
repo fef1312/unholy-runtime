@@ -45,9 +45,9 @@ interface IPrintableError {
 
 export class UnholySyntaxError extends SyntaxError implements IPrintableError {
 
-    public readonly element: ISemanticElement<SyntaxKind.Unknown>;
+    public readonly element: ISemanticElement;
 
-    public constructor(message: string, element: ISemanticElement<SyntaxKind.Unknown>) {
+    public constructor(message: string, element: ISemanticElement) {
         super(message);
         this.element = element;
     }
