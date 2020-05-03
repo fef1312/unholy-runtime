@@ -38,12 +38,14 @@ export default class SemanticElement<T extends SyntaxKind> implements ISemanticE
     public readonly kind: T;
     public readonly line: number;
     public readonly column: number;
+    public readonly pos: number;
     public readonly length: number;
 
     public readonly rawText: string;
     public value?: string;
 
-    public constructor(kind: T, line: number, column: number, rawText?: string) {
+    public constructor(kind: T, line: number, column: number, pos: number, length?: number,
+                       rawText?: string) {
         if (rawText === undefined) {
             rawText = tokenToString(kind);
             if (rawText === undefined) {
@@ -56,8 +58,13 @@ export default class SemanticElement<T extends SyntaxKind> implements ISemanticE
         this.kind = kind;
         this.line = line;
         this.column = column;
+        this.pos = pos;
         this.rawText = rawText;
-        this.length = rawText.length;
+        if (length === undefined) {
+            this.length = rawText.length;
+        } else {
+            this.length = length;
+        }
     }
 
     public isReservedWord(): boolean {

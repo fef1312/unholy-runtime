@@ -78,6 +78,10 @@ export default class Scanner implements IScanner {
         this.end = text.length;
     }
 
+    public getPos(): number {
+        return this.pos;
+    }
+
     public lookAhead<T>(fn: () => T): T {
         this.storeState();
         const ret = fn();
@@ -307,7 +311,14 @@ export default class Scanner implements IScanner {
      *     character maps.
      */
     private makeElem<T extends SyntaxKind>(kind: T, text?: string): ISemanticElement<T> {
-        return new SemanticElement(kind, this.line, this.pos - this.lineStart + 1, text);
+        return new SemanticElement(
+            /* kind    */ kind,
+            /* line    */ this.line,
+            /* column  */ this.pos - this.lineStart + 1,
+            /* pos     */ this.pos,
+            /* length  */ this.pos - this.tokenStart,
+            /* rawText */ text
+        );
     }
 
     /**

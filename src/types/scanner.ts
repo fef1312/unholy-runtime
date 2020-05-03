@@ -33,6 +33,12 @@ import type ISemanticElement from "./semantic-element";
 export default interface IScanner {
 
     /**
+     * Return this scanner's current poition as a character offset relative to
+     * the beginning of the source file.
+     */
+    getPos(): number;
+
+    /**
      * Proceed to the next token.
      *
      * @returns The next token.

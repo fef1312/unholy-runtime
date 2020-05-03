@@ -41,6 +41,8 @@ export default interface ISemanticElement<S extends SyntaxKind = SyntaxKind> {
     readonly line: number;
     /** The column number of this element's first character, starting from 1. */
     readonly column: number;
+    /** The character offset of this element's first character relative to the source file start. */
+    readonly pos: number;
     /** The length of this element. */
     readonly length: number;
 
