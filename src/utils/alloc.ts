@@ -34,20 +34,9 @@ import {
     SourceFile,
     Identifier as _IdentifierInterface
 } from "../types/ast/node";
-import type { SyntaxKind, TypeKeywordSyntaxKind } from "../types/syntax";
+import type { SyntaxKind } from "../types/syntax";
 import type TokenNode from "../types/ast/token";
-import type {
-    BlockStatement,
-    EmptyStatement,
-    ExpressionStatement,
-    IfStatement,
-    ReturnStatement,
-    FuncDeclarationStatement,
-    VarDeclarationStatement,
-} from "../types/ast/statement";
-import { TypeNode } from "../types/ast/type";
-import { BinaryExpression, CallExpression, VarDeclaration, FuncDeclaration, ParameterDeclaration } from "../types/ast/expression";
-import AutoNode from "../types/ast/auto-node";
+import type AutoNode from "../types/ast/auto-node";
 
 class Node implements _NodeInterface {
 
