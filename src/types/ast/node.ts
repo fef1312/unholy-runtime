@@ -33,8 +33,8 @@ import type { Statement } from "./statement";
 
 export const enum NodeFlags {
     None                = 0 | 0,
-    HasError            = 1 << 1,
-    ChildHasError       = 1 << 2,
+    HasError            = 1 << 0,
+    ChildHasError       = 1 << 1,
 }
 
 /** Any node in the AST. */
@@ -55,6 +55,14 @@ export interface Node {
      * Every node that is not a {@linkcode SourceFile} has a parent.
      */
     parent?: Node;
+}
+
+export interface NodeArray<T extends Node> extends Array<T> {
+    line: number;
+    column: number;
+    pos: number;
+    length: number;
+    hasTrailingComma?: boolean;
 }
 
 /** A node that holds a literal-like value, e.g. `123` or `"asdf"`. */
