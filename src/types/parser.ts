@@ -43,19 +43,20 @@ export default interface IParser {
 }
 
 /** All parsing contexts. */
-export const enum ParsingContext {
+export const enum ParsingContextFlags {
+    None                        = 0 | 0,
     /** Top-level statements (become direct children of the {@linkcode SourceFile} node). */
-    SourceElements,
+    SourceElements              = 1 << 0,
     /** Anything inside brackets. */
-    BlockStatements,
+    BlockStatements             = 1 << 1,
     /** A variable declaration. */
-    VarDeclarations,
+    VarDeclarations             = 1 << 2,
     /** A function declaration. */
-    FuncDeclarations,
+    FuncDeclarations            = 1 << 3,
     /** A parameter list declaration (for functions) */
-    ParameterDeclarations,
+    ParameterDeclarations       = 1 << 4,
     /** Currently unused */
-    SignatureDeclarations,
+    SignatureDeclarations       = 1 << 5,
     /** Expressions in a parameter list when calling functions. */
-    ArgExpressions,
+    ArgExpressions              = 1 << 6,
 }

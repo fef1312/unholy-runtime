@@ -28,7 +28,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-import IParser, { ParsingContext } from "../types/parser";
+import IParser, { ParsingContextFlags } from "../types/parser";
 import { SourceFile, Node, NodeFlags, NodeArray, Identifier } from "../types/ast/node";
 import type ISemanticElement from "../types/semantic-element";
 import { asyncReadFileStr } from "../utils/fs";
@@ -36,7 +36,7 @@ import alloc from "../utils/alloc";
 import { SyntaxKind } from "../types/syntax";
 import type IScanner from "../types/scanner";
 import Scanner from "../lexer/scanner";
-import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement } from "../types/ast/statement";
+import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement } from "../types/ast/statement";
 import { UnholyParserError, UnholySyntaxError } from "../utils/errors";
 import { VarDeclaration, FuncDeclaration, ParameterDeclaration } from "../types/ast/expression";
 import { tokenToString } from "../lexer/token-maps";
@@ -49,8 +49,8 @@ export default class Parser implements IParser {
     private scanner: IScanner = undefined ! ;
     private sourceFile: SourceFile = undefined ! ;
 
-    private context: ParsingContext = ParsingContext.SourceElements;
-    private contextStack: ParsingContext[] = [];
+    private context: ParsingContextFlags = ParsingContextFlags.SourceElements;
+    private contextStack: ParsingContextFlags[] = [];
 
     private parent: Node = undefined ! ;
     private parentStack: Node[] = [];
@@ -89,6 +89,10 @@ export default class Parser implements IParser {
         return this.sourceFile;
     }
 
+    /*
+     * Statements
+     */
+
     private parseStatement(): Statement {
         switch (this.token.kind) {
             case SyntaxKind.OpenBraceToken:
@@ -110,7 +114,7 @@ export default class Parser implements IParser {
         const block = new alloc.Node(SyntaxKind.BlockStatement, this.token.line, this.token.column);
         block.statements = [];
 
-        this.pushContext(ParsingContext.BlockStatements);
+        this.pushContext(ParsingContextFlags.BlockStatements);
         this.pushParent(block);
 
         while (this.consume().kind !== SyntaxKind.CloseBraceToken) {
@@ -128,13 +132,15 @@ export default class Parser implements IParser {
     }
 
     private parseVarDeclarationStatement(): VarDeclarationStatement {
-        this.assertContext(ParsingContext.SourceElements, ParsingContext.BlockStatements);
+        this.assertContext(
+            ParsingContextFlags.SourceElements | ParsingContextFlags.BlockStatements
+        );
         const stmt = new alloc.Node(
             SyntaxKind.VarDeclarationStatement,
             this.token.line,
             this.token.column
         );
-        this.pushContext(ParsingContext.VarDeclarations);
+        this.pushContext(ParsingContextFlags.VarDeclarations);
         this.pushParent(stmt);
 
         stmt.declaration = this.parseVarDeclaration();
@@ -144,8 +150,29 @@ export default class Parser implements IParser {
         return this.finalizeNode(stmt);
     }
 
+    public parseFuncDeclarationStatement(): FuncDeclarationStatement {
+        this.assertContext(ParsingContextFlags.SourceElements);
+        const stmt = new alloc.Node(
+            SyntaxKind.FuncDeclarationStatement,
+            this.token.line,
+            this.token.column
+        );
+        this.pushContext(ParsingContextFlags.FuncDeclarations);
+        this.pushParent(stmt);
+
+        stmt.declaration = this.parseFuncDeclaration();
+
+        this.popParent();
+        this.popContext();
+        return this.finalizeNode(stmt);
+    }
+
+    /*
+     * Declarations
+     */
+
     private parseVarDeclaration(): VarDeclaration {
-        this.assertContext(ParsingContext.VarDeclarations);
+        this.assertContext(ParsingContextFlags.VarDeclarations);
         const node = new alloc.Node(SyntaxKind.VarDeclaration, this.token.line, this.token.column);
         this.pushParent(node);
 
@@ -159,25 +186,8 @@ export default class Parser implements IParser {
         return this.finalizeNode(node);
     }
 
-    public parseFuncDeclarationStatement(): FuncDeclarationStatement {
-        this.assertContext(ParsingContext.SourceElements);
-        const stmt = new alloc.Node(
-            SyntaxKind.FuncDeclarationStatement,
-            this.token.line,
-            this.token.column
-        );
-        this.pushContext(ParsingContext.FuncDeclarations);
-        this.pushParent(stmt);
-
-        stmt.declaration = this.parseFuncDeclaration();
-
-        this.popParent();
-        this.popContext();
-        return this.finalizeNode(stmt);
-    }
-
     private parseFuncDeclaration(): FuncDeclaration {
-        this.assertContext(ParsingContext.FuncDeclarations);
+        this.assertContext(ParsingContextFlags.FuncDeclarations);
 
         const node = new alloc.Node(SyntaxKind.FuncDeclaration, this.token.line, this.token.column);
         this.pushParent(node);
@@ -189,7 +199,7 @@ export default class Parser implements IParser {
         if (this.consumeOptional(SyntaxKind.CloseParenToken)) {
             node.params = [];
         } else {
-            this.pushContext(ParsingContext.ParameterDeclarations);
+            this.pushContext(ParsingContextFlags.ParameterDeclarations);
             node.params = this.parseDelimitedList(
                 () => this.parseParameterDeclaration(),
                 SyntaxKind.CloseParenToken
@@ -213,7 +223,7 @@ export default class Parser implements IParser {
      * Parse a single signature parameter declaration.
      */
     private parseParameterDeclaration(): ParameterDeclaration {
-        this.assertContext(ParsingContext.ParameterDeclarations);
+        this.assertContext(ParsingContextFlags.ParameterDeclarations);
         const node = new alloc.Node(
             SyntaxKind.ParameterDeclaration,
             this.token.line,
@@ -272,17 +282,8 @@ export default class Parser implements IParser {
     }
 
     /*
-     * Begin utilities
+     * Utilities
      */
-
-    private assertContext(...allowed: ParsingContext[]) {
-        if (allowed.indexOf(this.context) === -1) {
-            throw new UnholyParserError(
-                `"${this.token.rawText}" not allowed in this context`,
-                this.token
-            );
-        }
-    }
 
     /**
      * Consume the next token.
@@ -315,8 +316,14 @@ export default class Parser implements IParser {
         return this.scanner.tryScan(() => tokenKinds.indexOf(this.scanner.nextToken().kind) !== -1);
     }
 
-    private makeNode<S extends SyntaxKind>(token: ISemanticElement<S>): AutoNode<S> {
-        const node = new alloc.Node(token.kind, token.line, token.column);
+    private makeNode<S extends SyntaxKind>(tokenOrElem: S | ISemanticElement<S>): AutoNode<S> {
+        let node: AutoNode<S>;
+        if (typeof tokenOrElem === "number") { /* tokenOrElem is a SyntaxKind */
+            node = new alloc.Node(tokenOrElem, this.token.line, this.token.column);
+        } else { /* tokenOrElem is an ISemanticElement */
+            node = new alloc.Node(tokenOrElem.kind, tokenOrElem.line, tokenOrElem.column);
+        }
+
         node.pos = this.scanner.getPos();
         return node;
     }
@@ -352,12 +359,28 @@ export default class Parser implements IParser {
         return ret;
     }
 
-    private pushContext(context: ParsingContext): void {
+    /**
+     * Check if at least one of the `required` flags is currently set, and throw an error if not.
+     *
+     * @param required The required parsing context flags.
+     * @param loose If `false`, ALL `required` flags need to be set.
+     */
+    private assertContext(required: ParsingContextFlags, loose: boolean = true) {
+        const masked = this.context & required;
+        if (loose && masked !== 0 || masked !== this.context) {
+            throw new UnholyParserError(
+                `"${this.token.rawText}" not allowed in this context`,
+                this.token
+            );
+        }
+    }
+
+    private pushContext(context: ParsingContextFlags): void {
         this.contextStack.push(this.context);
         this.context = context;
     }
 
-    private popContext(): ParsingContext {
+    private popContext(): ParsingContextFlags {
         const oldContext = this.context;
 
         const popped = this.contextStack.pop();
