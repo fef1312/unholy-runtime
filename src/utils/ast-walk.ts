@@ -62,6 +62,7 @@ export type WalkCallback = (current: Node, depth: number, name: string, leaf?: s
  * @param cb A callback that will be invoked for every tree node.
  */
 export default function astWalk(sourceFile: SourceFile, cb: WalkCallback): void {
+    cb(sourceFile, 0, `SourceFile <${sourceFile.fileName}>`, "file");
     sourceFile.statements.forEach(stmt => visitStatement(cb, stmt, 1, "statement"));
 }
 
@@ -115,8 +116,10 @@ function visitFuncDeclaration(cb: WalkCallback, node: FuncDeclaration, depth: nu
 }
 
 function visitParameterDeclaration(cb: WalkCallback, node: ParameterDeclaration, depth: number,
-    leaf?: string) {
+                                  leaf?: string) {
     cb(node, depth, "ParameterDeclaration", leaf);
+    visitIdentifier(cb, node.name, depth + 1, "name");
+    visitType(cb, node.type, depth + 1, "type");
 }
 
 function visitIdentifier(cb: WalkCallback, node: Identifier, depth: number, leaf?: string) {
