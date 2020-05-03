@@ -1,6 +1,5 @@
 {
     "compilerOptions": {
-        "sourceRoot": "./src",
         "target": "ES2019",
         "module": "CommonJS",
         "lib": [ "ES2019" ],
@@ -18,7 +17,6 @@
     },
     "include": [ "src/**/*" ],
     "exclude": [
-        "build/**/*",
         "node_modules"
     ]
 }
