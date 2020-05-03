@@ -1,6 +1,11 @@
 
-let variable: int;
+let someVariable: int;
 
 func main(): int {
     let var2: int;
+    let someBool: bool;
+}
+
+func anotherFunc(someParam: int, anotherParam: bool): int {
+    let varInsideAnotherFunc: int;
 }
