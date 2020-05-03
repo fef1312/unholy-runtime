@@ -44,6 +44,52 @@ import { TypeNode, KeywordTypeNode } from "../types/ast/type";
 import AutoNode from "../types/ast/auto-node";
 import TokenNode from "../types/ast/token";
 
+/**
+ * This is a minimal parser implementation; only a handful of operatios are supported.
+ *
+ * All methods starting with `parse` return a child of {@linkcode Node}, and the amount of tokens
+ * they consume is usually the amount of children (including the children's children and so on)
+ * the returned node is made up of.  This essentially means that all parsing methods expect the
+ * parser's current token to be the first one of the node they should parse, and return when the
+ * current token is the last one they consist of (except if they don't, naturally).
+ *
+ * The parent node is set in the {@linkcode .finalizeNode} utility method (located all the way down
+ * at the bottom of this file), which uses the parser's {@linkcode .parent} property.  For that
+ * reason, all parsing methods must call {@linkcode .pushParent} before invoking other parsing
+ * methods to get their required child nodes, and call {@linkcode .popParent} before returning.
+ * This ensures that every node has its parent set correctly.
+ *
+ * The same concept applies to {@linkcode .context} -- a collection of flags that determine what
+ * kind of tokens are allowed in the current parsing context (for example, the `return` keyword is
+ * only allowed in function bodies).  Parsing methods whose statements are only allowed in certain
+ * contexts should always call {@linkcode .assertContext} in order to make sure they don't
+ * accidentally accept something that would be syntactically invalid in the current context.
+ * Likewise, parsing methods that enter a new context ned to set the corresponding context flags ba
+ * a call to {@linkcode .pushContext}, and (before returning) restore the context to how it was
+ * before with {@linkcode .popContext}.
+ *
+ * For example, {@linkcode .parseBlockStatement} works in the following way:
+ *
+ * 1. Set the {@linkcode ParsingContextFlags.BlockStatements} flag with {@linkcode .pushContext}.
+ * 2. Create a new {@linkcode BlockStatement} node with {@linkcode .makeNode}.  This method sets
+ *    the node's position (line/column as well as absolute offset to the beginning of the file)
+ *    based on the scanner's current position.
+ * 3. Set the block node to be the parent of all subsequent nodes with {@linkcode .pushParent}.
+ * 4. While the next consumed token is not a closing brace (a), invoke {@linkcode .parseStatement}
+ *    (b) and add the returned node to the block node's statement list (c).  The statement node gets
+ *    its `parent` preperty set correctly because of step (2), and can't have any nodes that aren't
+ *    allowed in block statements because of step (1).
+ * 5. Restore the old parent (i.e. the new block statement's parent) with {@linkcode .popParent}.
+ * 6. Restore the old context with {@linkcode .popContext}.
+ * 7. Call {@linkcode .finalizeNode} to automatically set the block's parent and its absolute length
+ *    in characters (based on the starting position that was set in step (2) and the scanner's
+ *    current absolute position).
+ * 8. Return the block.
+ *
+ * This same core philosophy applies pretty much to all other parsing functions; this particular
+ * example was chosen because it is probably one of the simplest ones that involve all of these
+ * basic steps.
+ */
 export default class Parser implements IParser {
 
     private scanner: IScanner = undefined ! ;
@@ -111,24 +157,27 @@ export default class Parser implements IParser {
     }
 
     private parseBlockStatement(): BlockStatement {
+        /* See the doc comment at the top of the file for the explanation of these numbers */
+
+        /* Step 1 */
         const block = new alloc.Node(SyntaxKind.BlockStatement, this.token.line, this.token.column);
         block.statements = [];
 
-        this.pushContext(ParsingContextFlags.BlockStatements);
-        this.pushParent(block);
+        this.pushContext(ParsingContextFlags.BlockStatements); /* Step 2 */
+        this.pushParent(block); /* Step 3 */
 
-        while (this.consume().kind !== SyntaxKind.CloseBraceToken) {
-            const statement = this.parseStatement();
+        while (this.consume().kind !== SyntaxKind.CloseBraceToken) { /* Step 4a */
+            const statement = this.parseStatement(); /* Step 4b */
             if (statement.flags & (NodeFlags.HasError | NodeFlags.ChildHasError)) {
                 block.flags |= NodeFlags.ChildHasError;
             }
-            block.statements.push(statement);
+            block.statements.push(statement); /* Step 4c */
         }
 
-        this.popParent();
-        this.popContext();
+        this.popParent(); /* Step 5 */
+        this.popContext(); /* Step 6 */
 
-        return this.finalizeNode(block);
+        return this.finalizeNode(block); /* Step 7 && 8 */
     }
 
     private parseVarDeclarationStatement(): VarDeclarationStatement {
