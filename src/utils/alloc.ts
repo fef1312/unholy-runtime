@@ -28,7 +28,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-import { Node, NodeFlags, SourceFile, Identifier } from "../types/ast/node";
+import {
+    Node as _NodeInterface,
+    NodeFlags,
+    SourceFile,
+    Identifier as _IdentifierInterface
+} from "../types/ast/node";
 import type { SyntaxKind, TypeKeywordSyntaxKind } from "../types/syntax";
 import type TokenNode from "../types/ast/token";
 import type {
@@ -41,52 +46,67 @@ import type {
     VarDeclarationStatement,
 } from "../types/ast/statement";
 import { TypeNode } from "../types/ast/type";
-import { BinaryExpression, CallExpression, VarDeclaration, FuncDeclaration } from "../types/ast/expression";
+import { BinaryExpression, CallExpression, VarDeclaration, FuncDeclaration, ParameterDeclaration } from "../types/ast/expression";
+import AutoNode from "../types/ast/auto-node";
 
-function NodeConstructor(this: Node, kind: SyntaxKind, line: number = NaN, column: number = NaN) {
-    this.line = line;
-    this.column = column;
-    this.length = 1;
-    this.kind = kind;
-    this.flags = NodeFlags.None;
-    this.parent = undefined!;
+class Node implements _NodeInterface {
+
+    public line: number;
+    public column: number;
+    public pos: number;
+    public length: number;
+    public flags: NodeFlags;
+    public kind: SyntaxKind;
+    public parent?: _NodeInterface;
+
+    public constructor(kind: SyntaxKind, line: number = NaN, column: number = NaN) {
+        this.line = line;
+        this.column = column;
+        this.kind = kind;
+        this.flags = NodeFlags.None;
+    }
+
 }
 
-function TokenNodeConstructor(this: Node, kind: SyntaxKind, line: number = NaN,
-                              column: number = NaN) {
-    this.line = line;
-    this.column = column;
-    this.length = 1;
-    this.kind = kind;
-    this.flags = NodeFlags.None;
-    this.parent = undefined!;
+class Token<T extends SyntaxKind> implements TokenNode<T> {
+
+    public line: number;
+    public column: number;
+    public pos: number;
+    public length: number;
+    public flags: NodeFlags;
+    public kind: T;
+    public parent?: _NodeInterface;
+
+    public constructor(kind: T, line: number = NaN, column: number = NaN) {
+        this.line = line;
+        this.column = column;
+        this.kind = kind;
+        this.flags = NodeFlags.None;
+    }
+
 }
 
-function IdentifierConstructor(this: Node, kind: SyntaxKind, line: number = NaN,
-                               column: number = NaN) {
-    this.line = line;
-    this.column = column;
-    this.length = 1;
-    this.kind = kind;
-    this.flags = NodeFlags.None;
-    this.parent = undefined!;
-}
+class Identifier implements _IdentifierInterface {
 
-type AutoNode<T extends SyntaxKind> =
-    T extends TypeKeywordSyntaxKind ? TypeNode :
-    T extends SyntaxKind.BlockStatement ? BlockStatement :
-    T extends SyntaxKind.EmptyStatement ? EmptyStatement :
-    T extends SyntaxKind.ExpressionStatement ? ExpressionStatement :
-    T extends SyntaxKind.FuncDeclarationStatement ? FuncDeclarationStatement :
-    T extends SyntaxKind.VarDeclarationStatement ? VarDeclarationStatement :
-    T extends SyntaxKind.IfStatement ? IfStatement :
-    T extends SyntaxKind.ReturnStatement ? ReturnStatement :
-    T extends SyntaxKind.BinaryExpression ? BinaryExpression :
-    T extends SyntaxKind.CallExpression ? CallExpression :
-    T extends SyntaxKind.VarDeclaration ? VarDeclaration :
-    T extends SyntaxKind.FuncDeclaration ? FuncDeclaration :
-    T extends SyntaxKind.Identifier ? Identifier :
-    Node;
+    public line: number;
+    public column: number;
+    public pos: number;
+    public length: number;
+    public flags: NodeFlags;
+    public kind: SyntaxKind;
+
+    public parent: _NodeInterface;
+    public name: string;
+
+    public constructor(kind: SyntaxKind, line: number = NaN, column: number = NaN) {
+        this.line = line;
+        this.column = column;
+        this.kind = kind;
+        this.flags = NodeFlags.None;
+    }
+
+}
 
 /**
  * Quick and dirty (with the focus being clearly on the former) allocator functions that won't
@@ -107,9 +127,9 @@ interface ObjectAllocator {
 }
 
 const alloc: ObjectAllocator = {
-    Node: NodeConstructor as any,
-    TokenNode: TokenNodeConstructor as any,
-    Identifier: IdentifierConstructor as any,
-    SourceFile: NodeConstructor as any,
+    Node: Node as any,
+    TokenNode: Token as any,
+    Identifier: Identifier as any,
+    SourceFile: Node as any,
 };
 export default alloc;
