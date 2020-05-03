@@ -57,6 +57,12 @@ export interface Node {
     parent?: Node;
 }
 
+/** A node that holds a literal-like value, e.g. `123` or `"asdf"`. */
+export interface LiteralLikeNode extends Node {
+    /** The literal text w/out quotes and resolved escape sequences. */
+    text: string;
+}
+
 /** The top-level node in the AST. */
 export interface SourceFile extends Node {
     kind: SyntaxKind.SourceFile;

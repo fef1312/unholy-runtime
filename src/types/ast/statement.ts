@@ -29,7 +29,7 @@
  */
 
 import type { Node } from "./node";
-import type { Expression } from "./expression";
+import type { Expression, VarDeclaration, FuncDeclaration } from "./expression";
 import type { SyntaxKind } from "../syntax";
 
 export interface Statement extends Node {
@@ -59,4 +59,14 @@ export interface IfStatement extends Statement {
 export interface ReturnStatement extends Statement {
     kind: SyntaxKind.ReturnStatement;
     expression?: Expression;
+}
+
+export interface VarDeclarationStatement extends Statement {
+    kind: SyntaxKind.VarDeclarationStatement;
+    declaration: VarDeclaration;
+}
+
+export interface FuncDeclarationStatement extends Statement {
+    kind: SyntaxKind.FuncDeclarationStatement;
+    declaration: FuncDeclaration;
 }

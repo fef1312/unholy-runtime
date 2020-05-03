@@ -71,12 +71,14 @@ export const enum SyntaxKind {
 
     VarDeclaration,
     FuncDeclaration,
+    ParameterDeclaration,
 
     CallExpression,
     BinaryExpression,
 
     BlockStatement,
-    DeclarationStatement,
+    VarDeclarationStatement,
+    FuncDeclarationStatement,
     EmptyStatement,
     ExpressionStatement,
     IfStatement,
