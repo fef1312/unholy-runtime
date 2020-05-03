@@ -82,6 +82,17 @@ export default class Scanner implements IScanner {
         return this.pos;
     }
 
+    public getLineContent(): string {
+        let lineEnd: number = this.pos;
+        let currentChar: number;
+
+        do {
+            currentChar = this.text.charCodeAt(++lineEnd);
+        } while (currentChar !== CharCodes.LineFeed && currentChar !== CharCodes.CarriageReturn);
+
+        return this.text.substring(this.lineStart, lineEnd);
+    }
+
     public lookAhead<T>(fn: () => T): T {
         this.storeState();
         const ret = fn();
@@ -305,8 +316,9 @@ export default class Scanner implements IScanner {
     }
 
     /**
+     * Convenience helper for creating a new {@linkcode ISemanticElement}.
      *
-     * @param kind The syntactic kind of the element.
+     * @param kind The element kind.
      * @param text The raw text of this element.  May only be omitted if `kind` is specified in the
      *     character maps.
      */
@@ -314,8 +326,8 @@ export default class Scanner implements IScanner {
         return new SemanticElement(
             /* kind    */ kind,
             /* line    */ this.line,
-            /* column  */ this.pos - this.lineStart + 1,
-            /* pos     */ this.pos,
+            /* column  */ this.tokenStart - this.lineStart + 1,
+            /* pos     */ this.tokenStart,
             /* length  */ this.pos - this.tokenStart,
             /* rawText */ text
         );

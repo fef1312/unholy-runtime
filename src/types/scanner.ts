@@ -39,6 +39,11 @@ export default interface IScanner {
     getPos(): number;
 
     /**
+     * Return the current line w/out the `\n` character.
+     */
+    getLineContent(): string;
+
+    /**
      * Proceed to the next token.
      *
      * @returns The next token.

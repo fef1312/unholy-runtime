@@ -30,8 +30,20 @@
 
 import type ISemanticElement from "../types/semantic-element";
 import type { SyntaxKind } from "../types/syntax";
+import type { SourceFile } from "../types/ast/node";
 
-export class UnholySyntaxError extends SyntaxError {
+interface IPrintableError {
+
+    /**
+     * Print a human-readable error message w/ line and column number to the console.
+     *
+     * @param sourceFile The source file that contains the error.
+     */
+    printDiagnostic(sourceFile: SourceFile): void;
+
+}
+
+export class UnholySyntaxError extends SyntaxError implements IPrintableError {
 
     public readonly element: ISemanticElement<SyntaxKind.Unknown>;
 
@@ -40,15 +52,33 @@ export class UnholySyntaxError extends SyntaxError {
         this.element = element;
     }
 
+    public printDiagnostic(sourceFile: SourceFile): void {
+        console.error(
+            `\x1b[0;96m${sourceFile.fileName}\x1b[0m:`
+            + `\x1b[0;93m${this.element.line}\x1b[0m:`
+            + `\x1b[0;93m${this.element.column}\x1b[0m - `
+            + `\x1b[0;91mSyntaxError\x1b\0m: ${this.message}\n`
+        );
+    }
+
 }
 
-export class UnholyParserError extends EvalError {
+export class UnholyParserError extends EvalError implements IPrintableError {
 
     public readonly element: ISemanticElement;
 
     public constructor(message: string, element: ISemanticElement) {
         super(message);
         this.element = element;
+    }
+
+    public printDiagnostic(sourceFile: SourceFile): void {
+        console.error(
+            `\x1b[0;96m${sourceFile.fileName}\x1b[0m:`
+            + `\x1b[0;93m${this.element.line}\x1b[0m:`
+            + `\x1b[0;93m${this.element.column}\x1b[0m - `
+            + `\x1b[0;91mSyntaxError\x1b[0m: ${this.message}\n`
+        );
     }
 
 }
