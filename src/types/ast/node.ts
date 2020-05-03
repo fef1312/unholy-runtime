@@ -39,8 +39,15 @@ export const enum NodeFlags {
 
 /** Any node in the AST. */
 export interface Node {
+    /** The line number of the node's first character. */
     line: number;
+    /** The column number of the node's first character. */
     column: number;
+    /** The absolute character offset of the node's first character. */
+    pos: number;
+    /** The length (as in the source text) of this node. */
+    length: number;
+    /** The kind of this node. */
     kind: SyntaxKind;
     flags: NodeFlags;
     /**
