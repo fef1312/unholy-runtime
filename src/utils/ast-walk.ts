@@ -149,10 +149,12 @@ function visitVarDeclaration(cb: WalkCallback, node: VarDeclaration, depth: numb
 }
 
 function visitFuncDeclaration(cb: WalkCallback, node: FuncDeclaration, depth: number,
-    leaf?: string) {
+                              leaf?: string) {
     cb(node, depth, "FuncDeclaration", leaf);
     visitIdentifier(cb, node.name, depth + 1, "name");
-    node.params.forEach(paramNode => visitParameterDeclaration(cb, paramNode, depth + 1, "param"));
+    for (let i = 0; i < node.params.length; i++) {
+        visitParameterDeclaration(cb, node.params[i], depth + 1, `params[${i}]`);
+    }
     visitType(cb, node.type, depth + 1, "type");
     visitBlockStatement(cb, node.body, depth + 1, "body");
 }
@@ -217,8 +219,8 @@ function visitBinaryExpression(cb: WalkCallback, node: BinaryExpression, depth: 
 function visitCallExpression(cb: WalkCallback, node: CallExpression, depth: number, leaf?: string) {
     cb(node, depth, "CallExpression", leaf);
     visitExpression(cb, node.callee, depth + 1, "callee");
-    for (const arg of node.args) {
-        visitExpression(cb, arg, depth + 1, "param");
+    for (let i = 0; i < node.args.length; i++) {
+        visitExpression(cb, node.args[i], depth + 1, `args[${i}]`);
     }
 }
 
