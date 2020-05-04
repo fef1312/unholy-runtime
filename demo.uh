@@ -1,6 +1,14 @@
 
 let someVariable: int;
 
+/*
+ * multiline comment
+ */
+
+/**/// There are two different kinds of comments in this line
+// Single-line comment
+
+
 func main(): int {
     let var2: int;
     let someBool: bool = true;

@@ -201,6 +201,39 @@ export default class Scanner implements IScanner {
 
             case CharCodes.Slash:
                 this.pos++;
+
+                /* single-line comment */
+                if (this.text.charCodeAt(this.pos) === CharCodes.Slash) {
+                    while (++this.pos < this.end) {
+                        if (this.text.charCodeAt(this.pos) === CharCodes.LineFeed) {
+                            break;
+                        }
+                    }
+                    return null;
+                }
+
+                /* multiline comment */
+                if (this.text.charCodeAt(this.pos) === CharCodes.Asterisk) {
+                    let terminated: boolean = false;
+                    while (++this.pos < this.end) {
+                        if (
+                            this.text.charCodeAt(this.pos) === CharCodes.Asterisk
+                            && this.text.charCodeAt(this.pos + 1) === CharCodes.Slash
+                        ) {
+                            terminated = true;
+                            this.pos += 2;
+                            break;
+                        }
+                    }
+                    if (!terminated) {
+                        throw new UnholySyntaxError(
+                            "\"*/\" expected",
+                            this.makeElem(SyntaxKind.Unknown, " ")
+                        );
+                    }
+                    return null;
+                }
+
                 return this.makeElem(SyntaxKind.SlashToken);
 
             case CharCodes.Percent:
