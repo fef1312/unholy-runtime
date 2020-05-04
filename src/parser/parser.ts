@@ -251,9 +251,9 @@ export default class Parser implements IParser {
         const node = new alloc.Node(SyntaxKind.VarDeclaration, this.token.line, this.token.column);
         this.pushParent(node);
 
-        node.name = this.parseIdentifier();
+        node.name = this.parseIdentifier(/* consume */ true);
         if (this.consumeOptional(SyntaxKind.ColonToken)) {
-            node.type = this.parseType();
+            node.type = this.parseType(/* consume */ true);
         }
         this.consume(SyntaxKind.SemicolonToken);
 
@@ -267,14 +267,14 @@ export default class Parser implements IParser {
         const node = new alloc.Node(SyntaxKind.FuncDeclaration, this.token.line, this.token.column);
         this.pushParent(node);
 
-        node.name = this.parseIdentifier();
+        node.name = this.parseIdentifier(/* consume */ true);
 
         /* Parameter list */
         this.consume(SyntaxKind.OpenParenToken);
         if (this.consumeOptional(SyntaxKind.CloseParenToken)) {
             node.params = [];
         } else {
-            this.pushContext(ParsingContextFlags.ParameterDeclarations);
+            this.pushContext(this.context | ParsingContextFlags.ParameterDeclarations);
             node.params = this.parseDelimitedList(
                 () => this.parseParameterDeclaration(),
                 SyntaxKind.CloseParenToken
@@ -284,7 +284,7 @@ export default class Parser implements IParser {
 
         /* Return type */
         this.consume(SyntaxKind.ColonToken);
-        node.type = this.parseType();
+        node.type = this.parseType(/* consume */ true);
 
         /* Body */
         this.consume(SyntaxKind.OpenBraceToken);
@@ -307,27 +307,34 @@ export default class Parser implements IParser {
         this.pushParent(node);
 
         /* Name: Type */
-        node.name = this.parseIdentifier();
+        node.name = this.parseIdentifier(/* consume */ true);
         this.consume(SyntaxKind.ColonToken);
-        node.type = this.parseType();
+        node.type = this.parseType(/* consume */ true);
 
         this.popParent();
         return this.finalizeNode(node);
     }
 
-    private parseIdentifier(): Identifier {
-        const node = this.makeIdentifier(this.consume(SyntaxKind.Identifier));
+    private parseIdentifier(consume: boolean = false): Identifier {
+        const node = this.makeIdentifier(
+            consume
+                ? this.consume(SyntaxKind.Identifier)
+                : this.assertKind(SyntaxKind.Identifier)
+        );
         node.name = this.token.rawText;
         return this.finalizeNode(node);
     }
 
-    private parseType(): TypeNode {
+    private parseType(consume: boolean = false): TypeNode {
         /* only keyword types are supported right now */
-        const keyword = this.consume(
+        const expected = [
             SyntaxKind.BoolKeyword,
             SyntaxKind.IntKeyword,
             SyntaxKind.VoidKeyword,
-        );
+        ];
+        const keyword = consume
+            ? this.consume(...expected)
+            : this.assertKind(...expected);
         const node: KeywordTypeNode = this.makeNode(keyword) as KeywordTypeNode;
         return this.finalizeNode(node);
     }
@@ -444,10 +451,10 @@ export default class Parser implements IParser {
         return leftOperand;
     }
 
-    private parsePrimaryExpression(): PrimaryExpression {
+    private parsePrimaryExpression(consume: boolean = false): PrimaryExpression {
         switch (this.token.kind) {
             case SyntaxKind.Identifier:
-                return this.parseIdentifier();
+                return this.parseIdentifier(consume);
             case SyntaxKind.IntegerLiteral:
                 return this.parseIntegerLiteral();
             case SyntaxKind.TrueKeyword:
@@ -458,15 +465,16 @@ export default class Parser implements IParser {
         }
     }
 
-    private parseBoolLiteral(): BoolLiteral {
-        const kind = this.token.kind;
-        if (kind !== SyntaxKind.TrueKeyword && kind !== SyntaxKind.FalseKeyword) {
-            throw new UnholyParserError("Expected a bool literal", this.token);
-        }
-        return this.finalizeNode(this.makeNode(kind));
+    private parseBoolLiteral(consume: boolean = false): BoolLiteral {
+        const node = this.makeNode(
+            consume
+                ? this.consume(SyntaxKind.TrueKeyword, SyntaxKind.FalseKeyword)
+                : this.assertKind(SyntaxKind.TrueKeyword, SyntaxKind.FalseKeyword)
+        )
+        return this.finalizeNode(node);
     }
 
-    private parseIntegerLiteral(): IntegerLiteral {
+    private parseIntegerLiteral(consume: boolean = false): IntegerLiteral {
         if (this.token.kind !== SyntaxKind.IntegerLiteral) {
             throw new UnholyParserError("Expected an integer literal", this.token);
         }
@@ -509,6 +517,23 @@ export default class Parser implements IParser {
 
     private consumeOptional(...tokenKinds: SyntaxKind[]): boolean {
         return this.scanner.tryScan(() => tokenKinds.indexOf(this.scanner.nextToken().kind) !== -1);
+    }
+
+    /**
+     * Do the same as {@linkcode .consume} but without proceeding to the next token.
+     */
+    private assertKind<T extends SyntaxKind>(...expected: T[]): ISemanticElement<T> {
+        if (expected.indexOf(this.token.kind as T) === -1) {
+            /* TODO: List all expected tokens */
+            let tokenString = tokenToString(expected[0]);
+            if (tokenString !== undefined) {
+                throw new UnholyParserError(`"${tokenString}" expected`, this.token);
+            } else {
+                throw new UnholyParserError(`Unexpected token "${this.token.rawText}"`, this.token);
+            }
+        }
+
+        return this.token as ISemanticElement<T>;
     }
 
     private makeNode<S extends SyntaxKind>(tokenOrElem: S | ISemanticElement<S>): AutoNode<S> {
