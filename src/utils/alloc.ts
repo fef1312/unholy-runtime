@@ -65,7 +65,7 @@ class Token<T extends SyntaxKind> implements TokenNode<T> {
     public length: number;
     public flags: NodeFlags;
     public kind: T;
-    public parent?: _NodeInterface;
+    public parent: _NodeInterface;
 
     public constructor(kind: T, line: number = NaN, column: number = NaN) {
         this.line = line;
@@ -77,6 +77,11 @@ class Token<T extends SyntaxKind> implements TokenNode<T> {
 }
 
 class Identifier implements _IdentifierInterface {
+
+    public _expressionBrand: any;
+    public _primaryExpressionBrand: any;
+    public _leftHandSideExpressionBrand: any;
+    public _memberExpressionBrand: any;
 
     public line: number;
     public column: number;

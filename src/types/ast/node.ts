@@ -30,6 +30,7 @@
 
 import type { SyntaxKind } from "../syntax";
 import type { Statement } from "./statement";
+import type { PrimaryExpression } from "./expression";
 
 export const enum NodeFlags {
     None                = 0 | 0,
@@ -69,6 +70,7 @@ export interface NodeArray<T extends Node> extends Array<T> {
 export interface LiteralLikeNode extends Node {
     /** The literal text w/out quotes and resolved escape sequences. */
     text: string;
+    parent: Node;
 }
 
 /** The top-level node in the AST. */
@@ -79,7 +81,7 @@ export interface SourceFile extends Node {
     parent: undefined;
 }
 
-export interface Identifier extends Node {
+export interface Identifier extends PrimaryExpression {
     name: string;
     parent: Node;
 }

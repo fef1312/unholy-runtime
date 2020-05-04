@@ -35,6 +35,7 @@ import type { BinaryOperator, AssignmentOperator } from "./operator";
 /** A single token. */
 export default interface TokenNode<TKind extends SyntaxKind> extends Node {
     kind: TKind;
+    parent: Node;
 }
 
 export type EqualsTokenNode = TokenNode<SyntaxKind.EqualsToken>;
