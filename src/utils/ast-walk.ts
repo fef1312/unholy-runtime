@@ -118,8 +118,8 @@ function visitIfStatement(cb: WalkCallback, node: IfStatement, depth: number, le
     cb(node, depth, "IfStatement", leaf);
     visitExpression(cb, node.condition, depth + 1, "condition");
     visitStatement(cb, node.thenStatement, depth + 1, "thenStatement");
-    if (node.thenStatement !== undefined) {
-        visitStatement(cb, node.thenStatement, depth + 1, "thenStatement");
+    if (node.elseStatement !== undefined) {
+        visitStatement(cb, node.elseStatement, depth + 1, "elseStatement");
     }
 }
 
