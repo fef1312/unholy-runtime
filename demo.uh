@@ -4,6 +4,11 @@ let someVariable: int;
 func main(): int {
     let var2: int;
     let someBool: bool;
+    if (2 > 3) {
+        let var3: int;
+    } else {
+        let var4: int;
+    }
 }
 
 func anotherFunc(someParam: int, anotherParam: bool): int {

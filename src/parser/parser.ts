@@ -36,7 +36,7 @@ import alloc from "../utils/alloc";
 import { SyntaxKind } from "../types/syntax";
 import type IScanner from "../types/scanner";
 import Scanner from "../lexer/scanner";
-import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement } from "../types/ast/statement";
+import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement, IfStatement } from "../types/ast/statement";
 import { UnholyParserError, UnholySyntaxError } from "../utils/errors";
 import { VarDeclaration, FuncDeclaration, ParameterDeclaration, Expression, PrimaryExpression, BinaryExpression, IntegerLiteral, BoolLiteral } from "../types/ast/expression";
 import { tokenToString } from "../lexer/token-maps";
@@ -149,6 +149,8 @@ export default class Parser implements IParser {
                 return this.parseVarDeclarationStatement();
             case SyntaxKind.FuncKeyword:
                 return this.parseFuncDeclarationStatement();
+            case SyntaxKind.IfKeyword:
+                return this.parseIfStatement();
             case SyntaxKind.ReturnKeyword:
                 return this.parseReturnStatement();
         }
@@ -218,6 +220,29 @@ export default class Parser implements IParser {
         this.popParent();
         this.popContext();
         return this.finalizeNode(stmt);
+    }
+
+    private parseIfStatement(): IfStatement {
+        this.assertContext(ParsingContextFlags.BlockStatements);
+        this.assertKind(SyntaxKind.IfKeyword);
+        const node = this.makeNode(SyntaxKind.IfStatement);
+        this.pushParent(node);
+
+        this.consume(SyntaxKind.OpenParenToken);
+        this.consume();
+        node.condition = this.parseExpression();
+        this.assertKind(SyntaxKind.CloseParenToken);
+
+        this.consumeOptional(SyntaxKind.OpenBraceToken);
+        node.thenStatement = this.parseStatement();
+
+        if (this.consumeOptional(SyntaxKind.ElseKeyword)) {
+            this.consumeOptional(SyntaxKind.OpenBraceToken);
+            node.elseStatement = this.parseStatement();
+        }
+
+        this.popParent();
+        return node;
     }
 
     private parseReturnStatement(): ReturnStatement {
@@ -516,7 +541,14 @@ export default class Parser implements IParser {
     }
 
     private consumeOptional(...tokenKinds: SyntaxKind[]): boolean {
-        return this.scanner.tryScan(() => tokenKinds.indexOf(this.scanner.nextToken().kind) !== -1);
+        return this.scanner.tryScan(() => {
+            const nextToken = this.scanner.nextToken();
+            if (tokenKinds.indexOf(nextToken.kind) !== -1) {
+                this.token = nextToken;
+                return true;
+            }
+            return false;
+        });
     }
 
     /**

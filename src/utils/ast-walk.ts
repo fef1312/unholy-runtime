@@ -39,6 +39,7 @@ import type {
     Statement,
     ExpressionStatement,
     ReturnStatement,
+    IfStatement,
 } from "../types/ast/statement";
 import type {
     VarDeclaration,
@@ -83,6 +84,9 @@ function visitStatement(cb: WalkCallback, node: Statement, depth: number, leaf?:
         case SyntaxKind.FuncDeclarationStatement:
             visitFuncDeclarationStatement(cb, node as FuncDeclarationStatement, depth, leaf);
             return;
+        case SyntaxKind.IfStatement:
+            visitIfStatement(cb, node as IfStatement, depth, leaf);
+            return;
         case SyntaxKind.ReturnStatement:
             visitReturnStatement(cb, node as ReturnStatement, depth, leaf);
             return;
@@ -108,6 +112,15 @@ function visitFuncDeclarationStatement(cb: WalkCallback, node: FuncDeclarationSt
                                        depth: number, leaf?: string) {
     cb(node, depth, "FuncDeclarationStatement", leaf);
     visitFuncDeclaration(cb, node.declaration, depth + 1, "declaration");
+}
+
+function visitIfStatement(cb: WalkCallback, node: IfStatement, depth: number, leaf?: string) {
+    cb(node, depth, "IfStatement", leaf);
+    visitExpression(cb, node.condition, depth + 1, "condition");
+    visitStatement(cb, node.thenStatement, depth + 1, "thenStatement");
+    if (node.thenStatement !== undefined) {
+        visitStatement(cb, node.thenStatement, depth + 1, "thenStatement");
+    }
 }
 
 function visitReturnStatement(cb: WalkCallback, node: ReturnStatement, depth: number, leaf?: string) {

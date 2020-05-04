@@ -54,7 +54,7 @@ export interface IfStatement extends Statement {
     kind: SyntaxKind.IfStatement;
     condition: Expression;
     thenStatement: Statement;
-    elseStatement: Statement;
+    elseStatement?: Statement;
 }
 
 export interface ReturnStatement extends Statement {
