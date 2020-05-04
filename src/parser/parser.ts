@@ -38,11 +38,12 @@ import type IScanner from "../types/scanner";
 import Scanner from "../lexer/scanner";
 import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement } from "../types/ast/statement";
 import { UnholyParserError, UnholySyntaxError } from "../utils/errors";
-import { VarDeclaration, FuncDeclaration, ParameterDeclaration } from "../types/ast/expression";
+import { VarDeclaration, FuncDeclaration, ParameterDeclaration, Expression, PrimaryExpression, BinaryExpression, IntegerLiteral, BoolLiteral } from "../types/ast/expression";
 import { tokenToString } from "../lexer/token-maps";
 import { TypeNode, KeywordTypeNode } from "../types/ast/type";
 import AutoNode from "../types/ast/auto-node";
-import TokenNode from "../types/ast/token";
+import TokenNode, { BinaryOperatorTokenNode } from "../types/ast/token";
+import { isStartOfExpression, getBinaryOperatorPrecedence, isAssignmentOperator } from "../utils/parser-utils";
 
 /**
  * This is a minimal parser implementation; only a handful of operatios are supported.
@@ -111,6 +112,7 @@ export default class Parser implements IParser {
         this.sourceFile.statements = [];
         this.sourceFile.fileName = fileName;
         this.parent = this.sourceFile;
+        this.context = ParsingContextFlags.SourceElements;
 
         while (this.consume().kind !== SyntaxKind.EndOfFileToken) {
             try {
@@ -147,12 +149,14 @@ export default class Parser implements IParser {
                 return this.parseVarDeclarationStatement();
             case SyntaxKind.FuncKeyword:
                 return this.parseFuncDeclarationStatement();
+            case SyntaxKind.ReturnKeyword:
+                return this.parseReturnStatement();
         }
 
         if (this.token.kind === SyntaxKind.EndOfFileToken) {
             throw new UnholyParserError("Unexpected end of file", this.token);
         } else {
-            throw new UnholyParserError(`Unexpected token "${this.token.rawText}"`, this.token);
+            throw new UnholyParserError(`Not a statement: "${this.token.rawText}"`, this.token);
         }
     }
 
@@ -163,7 +167,7 @@ export default class Parser implements IParser {
         const block = new alloc.Node(SyntaxKind.BlockStatement, this.token.line, this.token.column);
         block.statements = [];
 
-        this.pushContext(ParsingContextFlags.BlockStatements); /* Step 2 */
+        this.pushContext(this.context | ParsingContextFlags.BlockStatements); /* Step 2 */
         this.pushParent(block); /* Step 3 */
 
         while (this.consume().kind !== SyntaxKind.CloseBraceToken) { /* Step 4a */
@@ -182,14 +186,14 @@ export default class Parser implements IParser {
 
     private parseVarDeclarationStatement(): VarDeclarationStatement {
         this.assertContext(
-            ParsingContextFlags.SourceElements | ParsingContextFlags.BlockStatements
+            ParsingContextFlags.SourceElements | ParsingContextFlags.BlockStatements,
         );
         const stmt = new alloc.Node(
             SyntaxKind.VarDeclarationStatement,
             this.token.line,
             this.token.column
         );
-        this.pushContext(ParsingContextFlags.VarDeclarations);
+        this.pushContext(this.context | ParsingContextFlags.VarDeclarations);
         this.pushParent(stmt);
 
         stmt.declaration = this.parseVarDeclaration();
@@ -200,7 +204,7 @@ export default class Parser implements IParser {
     }
 
     public parseFuncDeclarationStatement(): FuncDeclarationStatement {
-        this.assertContext(ParsingContextFlags.SourceElements);
+        this.assertContext(ParsingContextFlags.SourceElements, /* loose */ false);
         const stmt = new alloc.Node(
             SyntaxKind.FuncDeclarationStatement,
             this.token.line,
@@ -213,6 +217,28 @@ export default class Parser implements IParser {
 
         this.popParent();
         this.popContext();
+        return this.finalizeNode(stmt);
+    }
+
+    private parseReturnStatement(): ReturnStatement {
+        this.assertContext(
+            ParsingContextFlags.FuncDeclarations | ParsingContextFlags.BlockStatements,
+            /* loose */ false
+        );
+        if (this.token.kind !== SyntaxKind.ReturnKeyword) {
+            throw new UnholyParserError(
+                `Unexpected token "${tokenToString(this.token.kind)}"`,
+                this.token
+            );
+        }
+        const stmt = this.makeNode(SyntaxKind.ReturnStatement);
+
+        if (this.consume().kind !== SyntaxKind.SemicolonToken) {
+            this.pushParent(stmt);
+            stmt.expression = this.parseExpression();
+            this.popParent();
+        }
+
         return this.finalizeNode(stmt);
     }
 
@@ -331,6 +357,126 @@ export default class Parser implements IParser {
     }
 
     /*
+     * Expressions
+     *
+     * Precedences (lowest to highest):
+     *   (2)     AssignmentExpression (e.g. `… = …`)
+     *   (4-15)  BinaryExpression (e.g. `… + …`)
+     *   (16-17) UnaryExpression (e.g. `… ++`) (unimplemented)
+     *   (18)    PrimaryExpression (e.g. Identifier, Literal, function call)
+     */
+
+    private parseExpression(): Expression {
+        if (!isStartOfExpression(this.token.kind)) {
+            throw new UnholyParserError("Expected an expression", this.token);
+        }
+
+        return this.parseAssignmentExpressionOrHigher();
+    }
+
+    /**
+     * Parse an {@linkcode AssignmentExpression} or any Expression of higher precedence:
+     *
+     * 1. {@linkcode PrimaryExpression}
+     * 2. {@linkcode UnaryExpression} (unimplemented)
+     * 3. {@linkcode BinaryExpression}
+     * 4. {@linkcode AssignmentExpression}
+     *
+     * (in that order)
+     */
+    private parseAssignmentExpressionOrHigher(): Expression {
+        let expr = this.parseBinaryExpressionOrHigher();
+
+        if (isAssignmentOperator(this.token.kind)) {
+            const operatorToken = this.token;
+            this.consume();
+            return this.makeBinaryExpression(
+                expr,
+                this.makeToken(operatorToken) as BinaryOperatorTokenNode,
+                this.parseAssignmentExpressionOrHigher()
+            );
+        }
+
+        return expr;
+    }
+
+    /**
+     * Parse a {@linkcode BinaryExpression} or any Expression of higher precedence.
+     *
+     * In the current (very limited) implementation, we skip unary expressions and expect the
+     * operators of the binary expression to be {@linkcode PrimaryExpression}s.
+     *
+     * @param precedence The current operator precedence.  If this statement consists of multiple
+     *     operators and the next one we stumble upon has a lower precedence than the one specified
+     *     here, we consider the already-parsed binary expression as the left operand to the new
+     *     operator (with lower precedence).
+     */
+    private parseBinaryExpressionOrHigher(precedence: number = 0): Expression {
+        const leftOperand = this.parsePrimaryExpression();
+        if (getBinaryOperatorPrecedence(this.consume().kind) === -1) {
+            return leftOperand; /* This is not a binary expression */
+        }
+        return this.parseBinaryExpressionRest(precedence, leftOperand);
+    }
+
+    /**
+     * Parse the operator token and right-hand side of a binary expression.
+     *
+     * @param precedence See {@linkcode .parseBinaryExpressionOrHigher}
+     * @param leftOperand The left-hand side of the expression.
+     */
+    private parseBinaryExpressionRest(precedence: number, leftOperand: Expression): Expression {
+        while (true) {
+            const newPrecedence = getBinaryOperatorPrecedence(this.token.kind);
+            if (newPrecedence > precedence) {
+                const operatorToken = this.makeToken(this.token) as BinaryOperatorTokenNode;
+                this.consume();
+                leftOperand = this.makeBinaryExpression(
+                    leftOperand,
+                    operatorToken,
+                    this.parseBinaryExpressionOrHigher(newPrecedence)
+                );
+            } else {
+                break;
+            }
+        }
+
+        return leftOperand;
+    }
+
+    private parsePrimaryExpression(): PrimaryExpression {
+        switch (this.token.kind) {
+            case SyntaxKind.Identifier:
+                return this.parseIdentifier();
+            case SyntaxKind.IntegerLiteral:
+                return this.parseIntegerLiteral();
+            case SyntaxKind.TrueKeyword:
+            case SyntaxKind.FalseKeyword:
+                return this.parseBoolLiteral();
+            default:
+                throw new UnholyParserError(`Unexpected token "${this.token.rawText}"`, this.token);
+        }
+    }
+
+    private parseBoolLiteral(): BoolLiteral {
+        const kind = this.token.kind;
+        if (kind !== SyntaxKind.TrueKeyword && kind !== SyntaxKind.FalseKeyword) {
+            throw new UnholyParserError("Expected a bool literal", this.token);
+        }
+        return this.finalizeNode(this.makeNode(kind));
+    }
+
+    private parseIntegerLiteral(): IntegerLiteral {
+        if (this.token.kind !== SyntaxKind.IntegerLiteral) {
+            throw new UnholyParserError("Expected an integer literal", this.token);
+        }
+
+        const node = this.makeNode(SyntaxKind.IntegerLiteral);
+        node.text = this.token.value ! ;
+        return this.finalizeNode(node);
+    }
+
+    /*
      * Utilities
      */
 
@@ -387,6 +533,22 @@ export default class Parser implements IParser {
         const identifier = new alloc.Identifier(SyntaxKind.Identifier, token.line, token.column);
         identifier.pos = this.scanner.getPos();
         return identifier;
+    }
+
+    private makeBinaryExpression(left: Expression, operatorToken: BinaryOperatorTokenNode,
+                                 right: Expression): BinaryExpression {
+        const node = new alloc.Node(SyntaxKind.BinaryExpression, left.line, left.column);
+        node.pos = left.pos;
+
+        left.parent = node;
+        operatorToken.parent = node;
+        right.parent = node;
+
+        node.left = left;
+        node.operatorToken = operatorToken;
+        node.right = right;
+
+        return this.finalizeNode(node);
     }
 
     private finalizeNode<T extends Node>(node: T): T {

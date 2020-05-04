@@ -37,13 +37,19 @@ import type {
     BlockStatement,
     FuncDeclarationStatement,
     Statement,
+    ExpressionStatement,
+    ReturnStatement,
 } from "../types/ast/statement";
 import type {
     VarDeclaration,
     FuncDeclaration,
     ParameterDeclaration,
+    Expression,
+    BinaryExpression,
+    IntegerLiteral,
 } from "../types/ast/expression";
 import type { TypeNode, KeywordTypeNode } from "../types/ast/type";
+import TokenNode from "../types/ast/token";
 
 /**
  * A callback that is invoked on every node in an AST.
@@ -77,6 +83,12 @@ function visitStatement(cb: WalkCallback, node: Statement, depth: number, leaf?:
         case SyntaxKind.FuncDeclarationStatement:
             visitFuncDeclarationStatement(cb, node as FuncDeclarationStatement, depth, leaf);
             return;
+        case SyntaxKind.ReturnStatement:
+            visitReturnStatement(cb, node as ReturnStatement, depth, leaf);
+            return;
+        case SyntaxKind.ExpressionStatement:
+            visitExpressionStatement(cb, node as ExpressionStatement, depth, leaf);
+            return;
     }
     cb(node, depth, "Statement <~unimplemented~>", leaf);
 }
@@ -98,11 +110,27 @@ function visitFuncDeclarationStatement(cb: WalkCallback, node: FuncDeclarationSt
     visitFuncDeclaration(cb, node.declaration, depth + 1, "declaration");
 }
 
+function visitReturnStatement(cb: WalkCallback, node: ReturnStatement, depth: number, leaf?: string) {
+    cb(node, depth, "ReturnStatement", leaf);
+    if (node.expression !== undefined) {
+        visitExpression(cb, node.expression, depth + 1, "expression");
+    }
+}
+
+function visitExpressionStatement(cb: WalkCallback, node: ExpressionStatement, depth: number,
+                                  leaf?: string) {
+    cb(node, depth, "ExpressionStatement", leaf);
+    visitExpression(cb, node.expression, depth + 1, "expression");
+}
+
 function visitVarDeclaration(cb: WalkCallback, node: VarDeclaration, depth: number, leaf?: string) {
     cb(node, depth, "VarDeclaration", leaf);
     visitIdentifier(cb, node.name, depth + 1, "name");
     if (node.type !== undefined) {
         visitType(cb, node.type, depth + 1, "type");
+    }
+    if (node.initializer !== undefined) {
+        visitExpression(cb, node.initializer, depth + 1, "initializer");
     }
 }
 
@@ -135,4 +163,36 @@ function visitType(cb: WalkCallback, node: TypeNode, depth: number, leaf?: strin
             return;
     }
     cb(node, depth, "TypeNode <~unimplemented~>");
+}
+
+function visitToken(cb: WalkCallback, node: TokenNode<SyntaxKind>, depth: number, leaf?: string) {
+    cb(node, depth, `Token <${tokenToString(node.kind)}>`, leaf);
+}
+
+function visitExpression(cb: WalkCallback, node: Expression, depth: number, leaf?: string) {
+    switch (node.kind) {
+        case SyntaxKind.BinaryExpression:
+            visitBinaryExpression(cb, node as BinaryExpression, depth, leaf);
+            return;
+        case SyntaxKind.Identifier:
+            visitIdentifier(cb, node as Identifier, depth, leaf);
+            return;
+        case SyntaxKind.IntegerLiteral:
+            visitIntegerLiteral(cb, node as IntegerLiteral, depth, leaf);
+            return;
+    }
+
+    cb(node, depth, "Expression <~unimplemented~>", leaf);
+}
+
+function visitBinaryExpression(cb: WalkCallback, node: BinaryExpression, depth: number,
+                               leaf?: string) {
+    cb(node, depth, "BinaryExpression", leaf);
+    visitExpression(cb, node.left, depth + 1, "left");
+    visitToken(cb, node.operatorToken, depth + 1, "operatorToken");
+    visitExpression(cb, node.right, depth + 1, "right");
+}
+
+function visitIntegerLiteral(cb: WalkCallback, node: IntegerLiteral, depth: number, leaf?: string) {
+    cb(node, depth, `IntegerLiteral <${node.text}>`, leaf);
 }

@@ -8,4 +8,5 @@ func main(): int {
 
 func anotherFunc(someParam: int, anotherParam: bool): int {
     let varInsideAnotherFunc: int;
+    return 2 + 2 - 2;
 }

@@ -29,7 +29,6 @@
  */
 
 import { SyntaxKind } from "../types/syntax";
-import { AssertionError } from "assert";
 
 export function isStartOfLeftHandSideExpression(token: SyntaxKind): boolean {
     switch (token) {
@@ -52,6 +51,15 @@ export function isStartOfExpression(token: SyntaxKind): boolean {
     switch (token) {
         case SyntaxKind.PlusToken:
         case SyntaxKind.MinusToken:
+            return true;
+    }
+
+    return false;
+}
+
+export function isAssignmentOperator(token: SyntaxKind): boolean {
+    switch (token) {
+        case SyntaxKind.EqualsToken:
             return true;
     }
 
