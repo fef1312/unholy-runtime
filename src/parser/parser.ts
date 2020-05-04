@@ -552,20 +552,20 @@ export default class Parser implements IParser {
     }
 
     private parseBoolLiteral(consume: boolean = false): BoolLiteral {
+        if (consume) {
+            this.consume();
+        }
         const node = this.makeNode(
-            consume
-                ? this.consume(SyntaxKind.TrueKeyword, SyntaxKind.FalseKeyword)
-                : this.assertKind(SyntaxKind.TrueKeyword, SyntaxKind.FalseKeyword)
-        )
+            this.assertKind(SyntaxKind.TrueKeyword, SyntaxKind.FalseKeyword)
+        );
         return this.finalizeNode(node);
     }
 
     private parseIntegerLiteral(consume: boolean = false): IntegerLiteral {
-        const node = this.makeNode(
-            consume
-                ? this.consume(SyntaxKind.IntegerLiteral)
-                : this.assertKind(SyntaxKind.IntegerLiteral)
-        );
+        if (consume) {
+            this.consume();
+        }
+        const node = this.makeNode(this.assertKind(SyntaxKind.IntegerLiteral));
         node.text = this.token.value ! ;
         return this.finalizeNode(node);
     }
