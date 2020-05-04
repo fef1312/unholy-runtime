@@ -89,8 +89,6 @@ export function getBinaryOperatorPrecedence(operator: SyntaxKind): number {
             return 9;
         case SyntaxKind.EqualsToken:
             return 2;
-        case SyntaxKind.CommaToken:
-            return 1;
     }
 
     return -1;

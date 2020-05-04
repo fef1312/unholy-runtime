@@ -417,7 +417,11 @@ export default class Parser implements IParser {
      *   (18)    PrimaryExpression (e.g. Identifier, Literal, function call)
      */
 
-    private parseExpression(): Expression {
+    private parseExpression(consume: boolean = false): Expression {
+        if (consume) {
+            this.consume();
+        }
+
         if (!isStartOfExpression(this.token.kind)) {
             throw new UnholyParserError("Expected an expression", this.token);
         }
@@ -505,7 +509,7 @@ export default class Parser implements IParser {
         switch (this.token.kind) {
             case SyntaxKind.Identifier:
                 expr = this.parseIdentifier(consume);
-                if (this.consumeOptional(SyntaxKind.OpenParenToken)) {
+                if (this.peek().kind === SyntaxKind.OpenParenToken) {
                     expr = this.parseCallExpression(expr);
                 }
                 break;
@@ -527,17 +531,17 @@ export default class Parser implements IParser {
      * @param callee The function that is being called.
      */
     private parseCallExpression(callee: LeftHandSideExpression): CallExpression {
-        this.assertKind(SyntaxKind.OpenParenToken);
+        this.consume(SyntaxKind.OpenParenToken);
         const callExpr = this.makeNode(SyntaxKind.CallExpression);
         callExpr.callee = callee;
         callee.parent = callExpr;
 
         /* check if we have parameters */
-        if (this.consume().kind !== SyntaxKind.CloseParenToken) {
+        if (this.peek().kind !== SyntaxKind.CloseParenToken) {
             this.pushContext(this.context | ParsingContextFlags.ArgExpressions);
             this.pushParent(callExpr);
             callExpr.args = this.parseDelimitedList(
-                () => this.parseExpression(),
+                () => this.parseExpression(true),
                 SyntaxKind.CloseParenToken
             );
             this.popParent();
@@ -628,6 +632,11 @@ export default class Parser implements IParser {
             this.token = speculationResult;
         }
         return speculationResult;
+    }
+
+    /** Return the next token without mutating state. */
+    private peek(): ISemanticElement {
+        return this.scanner.lookAhead(() => this.scanner.nextToken());
     }
 
     /**
