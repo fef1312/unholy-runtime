@@ -88,19 +88,15 @@ function printAST(lines: ASTLine[]) {
         }
     }
 
+    const drawLineOnDepth: boolean[] = [];
     const lastIndicesPerDepth: number[] = [];
     for (let i = 0; i < lines.length; i++) {
         const curr = lines[i];
         const next = lines[i + 1];
 
-        // if (curr.depth === 0) {
-        //     console.log(curr.line);
-        //     continue;
-        // }
-
         let unicodeArt: string = "";
         for (let j = 0; j < curr.depth; j++) {
-            if (countPerDepth[j] > 0 && !asdf(lastIndicesPerDepth[j], lines)) {
+            if (drawLineOnDepth[j]) {
                 unicodeArt += "│ ";
             } else {
                 unicodeArt += "  ";
@@ -108,12 +104,12 @@ function printAST(lines: ASTLine[]) {
         }
 
         if (--countPerDepth[curr.depth] === 0 || next?.depth < curr.depth || asdf(i, lines)) {
-            unicodeArt += "└";
+            unicodeArt += "└─";
+            drawLineOnDepth[curr.depth] = false;
         } else {
-            unicodeArt += "├";
+            unicodeArt += "├─";
+            drawLineOnDepth[curr.depth] = true;
         }
-
-        unicodeArt += "─";
 
         if (next?.depth > curr.depth) {
             unicodeArt += "┬";
