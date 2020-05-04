@@ -195,6 +195,18 @@ export default class Scanner implements IScanner {
                 this.pos++;
                 return this.makeElem(SyntaxKind.MinusToken);
 
+            case CharCodes.Asterisk:
+                this.pos++;
+                return this.makeElem(SyntaxKind.AsteriskToken);
+
+            case CharCodes.Slash:
+                this.pos++;
+                return this.makeElem(SyntaxKind.SlashToken);
+
+            case CharCodes.Percent:
+                this.pos++;
+                return this.makeElem(SyntaxKind.PercentToken);
+
             case CharCodes.LessThan:
                 this.pos++;
                 return this.makeElem(SyntaxKind.LessThanToken);

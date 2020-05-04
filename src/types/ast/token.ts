@@ -41,5 +41,8 @@ export default interface TokenNode<TKind extends SyntaxKind> extends Node {
 export type EqualsTokenNode = TokenNode<SyntaxKind.EqualsToken>;
 export type PlusTokenNode = TokenNode<SyntaxKind.PlusToken>;
 export type MinusTokenNode = TokenNode<SyntaxKind.MinusToken>;
+export type AsteriskTokenNode = TokenNode<SyntaxKind.AsteriskToken>;
+export type SlashTokenNode = TokenNode<SyntaxKind.SlashToken>;
+export type PercentTokenNode = TokenNode<SyntaxKind.PercentToken>;
 export type BinaryOperatorTokenNode = TokenNode<BinaryOperator>;
 export type AssignmentOperatorTokenNode = TokenNode<AssignmentOperator>;

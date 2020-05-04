@@ -148,6 +148,9 @@ const textToTokenMap = createMapFromTemplate<SyntaxKind>({
     "==":   SyntaxKind.EqualsEqualsToken,
     "+":    SyntaxKind.PlusToken,
     "-":    SyntaxKind.MinusToken,
+    "*":    SyntaxKind.AsteriskToken,
+    "/":    SyntaxKind.SlashToken,
+    "%":    SyntaxKind.PercentToken,
     ":":    SyntaxKind.ColonToken,
     "=":    SyntaxKind.EqualsToken,
 });

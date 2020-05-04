@@ -49,6 +49,7 @@ export function isStartOfExpression(token: SyntaxKind): boolean {
     }
 
     switch (token) {
+        /* Unary plus / minus */
         case SyntaxKind.PlusToken:
         case SyntaxKind.MinusToken:
             return true;
@@ -74,6 +75,10 @@ export function isAssignmentOperator(token: SyntaxKind): boolean {
  */
 export function getBinaryOperatorPrecedence(operator: SyntaxKind): number {
     switch (operator) {
+        case SyntaxKind.AsteriskToken:
+        case SyntaxKind.SlashToken:
+        case SyntaxKind.PercentToken:
+            return 14;
         case SyntaxKind.PlusToken:
         case SyntaxKind.MinusToken:
             return 13;

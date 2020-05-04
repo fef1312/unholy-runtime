@@ -30,6 +30,13 @@
 
 import type { SyntaxKind } from "../syntax";
 
+/** An operator that performs multiplication, division or modulus. */
+export type MultiplicativeOperator
+    = SyntaxKind.AsteriskToken
+    | SyntaxKind.SlashToken
+    | SyntaxKind.PercentToken
+    ;
+
 /**
  * An operator that performs some sort of addition
  * (subtraction is considered adding negative values).
@@ -37,6 +44,12 @@ import type { SyntaxKind } from "../syntax";
 export type AdditiveOperator
     = SyntaxKind.PlusToken
     | SyntaxKind.MinusToken
+    ;
+
+/** An additive operator, or one with higher precedence. */
+export type AdditiveOperatorOrHigher
+    = MultiplicativeOperator
+    | AdditiveOperator
     ;
 
 /** A relational (comparing two values) operator. */
