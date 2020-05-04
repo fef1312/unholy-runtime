@@ -45,6 +45,8 @@ import type {
     VarDeclaration,
     FuncDeclaration,
     ParameterDeclaration,
+    IntegerLiteral,
+    BoolLiteral,
 } from "./expression";
 import type { Identifier, Node, SourceFile } from "./node";
 
@@ -68,6 +70,9 @@ type AutoNode<T extends SyntaxKind> =
     T extends SyntaxKind.FuncDeclaration ? FuncDeclaration :
     T extends SyntaxKind.ParameterDeclaration ? ParameterDeclaration :
     T extends SyntaxKind.Identifier ? Identifier :
+    T extends SyntaxKind.TrueKeyword ? BoolLiteral :
+    T extends SyntaxKind.FalseKeyword ? BoolLiteral :
+    T extends SyntaxKind.IntegerLiteral ? IntegerLiteral :
     T extends SyntaxKind.SourceFile ? SourceFile :
     Node;
 

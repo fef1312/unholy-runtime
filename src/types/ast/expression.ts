@@ -49,8 +49,7 @@ export interface Expression extends Node {
 
 /**
  * _LeftHandSideExpression_ :
- * - _NewExpression_ (unimplemented)
- * - _MemberExpression_
+ * - _{@linkcode MemberExpression}_
  */
 export interface LeftHandSideExpression extends Expression {
     _leftHandSideExpressionBrand: any;
@@ -131,10 +130,7 @@ export interface BinaryExpression extends Expression {
 
 /**
  * _CallExpression_ :
- * - _{@linkcode MemberExpression}_
- * - _CallExpression_ _Arguments_
- * - _CallExpression_ `[` _Expression_ `]`
- * - _CallExpression_ `.` _Identifier_
+ * - _MemberExpression_ _Arguments_
  *
  * _Arguments_ :
  * - `(` `)`
@@ -152,7 +148,7 @@ export interface CallExpression extends LeftHandSideExpression, Declaration {
 
 /**
  * _MemberExpression_ :
- * - _{@linkcode PrimaryExpression}_
+ * - _{@linkcode PrimaryExpression}_ but not _Literal_
  * - _MemberExpression_ `[` _{@linkcode Expression}_ `]`
  * - _MemberExpression_ `.` _{@linkcode Identifier}_
  * - `new` _MemberExpression_ _Arguments_ (see {@linkcode CallExpression} for _Arguments_)
@@ -180,6 +176,7 @@ export interface PrimaryExpression extends MemberExpression {
  * - _StringLiteral_ (unimplemented)
  * - _CharLiteral_ (unimplemented)
  * - _ComplexLiteral_ (unimplemented)
+ * - _QuaternLiteral_ (unimplemented)
  * - _ArrayLiteral_ (unimplemented)
  * - _RegexLiteral_ (unimplemented)
  * - _StructLiteral_ (unimplemented)
@@ -197,17 +194,48 @@ export interface NamedDeclaration extends Declaration {
     name: Identifier;
 }
 
+/**
+ * _VarDeclaration_ :
+ *
+ * - `let` _Identifier_ `:` _Type_ `;`
+ * - _LetOrConst_ _Identifier_ `=` _Expression_ `;`
+ * - _LetOrConst_ _Identifier_ `:` _Type_ `=` _Expression_ `;`
+ *
+ * _LetOrConst_ :
+ * - `let`
+ * - `const`
+ */
 export interface VarDeclaration extends NamedDeclaration {
     kind: SyntaxKind.VarDeclaration;
     type?: TypeNode;
+    initializer?: Expression;
 }
-
+/**
+ * _ParameterDeclaration_ :
+ *
+ * - _{@linkcode Identifier}_ `:` _Type_
+ */
 export interface ParameterDeclaration extends NamedDeclaration {
     kind: SyntaxKind.ParameterDeclaration;
     parent: FuncDeclaration;
     type: TypeNode;
 }
 
+/**
+ * _FuncDeclaration_ :
+ *
+ * - `func` _Signature_ _{@linkcode BlockStatement}_
+ *
+ * _Signature_ :
+ *
+ * - `(` `)` `:` _Type_
+ * - `(` _ParameterList_ `)` `:` _Type_
+ *
+ * _ParameterList_ :
+ *
+ * - _Identifier_ `:` _Type_
+ * - _ParameterList_ `,` _{@linkcode ParameterDeclaration}_
+ */
 export interface FuncDeclaration extends NamedDeclaration {
     kind: SyntaxKind.FuncDeclaration;
     params: ParameterDeclaration[];
@@ -215,10 +243,68 @@ export interface FuncDeclaration extends NamedDeclaration {
     body: BlockStatement;
 }
 
+/**
+ * _BoolLiteral_ :
+ *
+ * - `true`
+ * - `false`
+ */
 export interface BoolLiteral extends PrimaryExpression {
     kind: SyntaxKind.TrueKeyword | SyntaxKind.FalseKeyword;
 }
 
+/**
+ * _IntegerLiteral_ :
+ *
+ * - `0b` _BinaryDigits_
+ * - `0o` _OctalDigits_
+ * - `0x` _HexDigits_
+ * - _FirstDecimalDigit_
+ * - _FirstDecimalDigit_ _DecimalDigits_
+ *
+ * NOTE: Only the last two productions are currently implemented.
+ *
+ * _BinaryDigits_ :
+ *
+ * - _BinaryDigit_
+ * - _BinaryDigits_ _BinaryDigit_
+ *
+ * _BinaryDigit_ :
+ *
+ * - `0`
+ * - `1`
+ *
+ * _OctalDigits_ :
+ *
+ * - _OctalDigit_
+ * - _OctalDigits_ _OctalDigit_
+ *
+ * _OctalDigit_ :
+ *
+ * Either of `0`, `1`, `2`, `3`, `4`, `5`, `6`, or `7`
+ *
+ * _DecimalDigits_ :
+ *
+ * - _DecimalDigit_
+ * - _DecimalDigits_ _DecimalDigit_
+ *
+ * _DecimalDigit_ :
+ *
+ * Either of _OctalDigit_, `8`, or `9`
+ *
+ * _FirstDecimalDigit_ :
+ *
+ * Either of _DecimalDigit_, but not `0`
+ *
+ * _HexDigits_ :
+ *
+ * - _HexDigit_
+ * - _HexDigits_ _HexDigit_
+ *
+ * _HexDigit_ :
+ *
+ * Either of _DecimalDigit_, `A`, `B`, `C`, `D`, `E`, `F`, `a`, `b`, `c`, `d`, `e`, or `f`
+ */
 export interface IntegerLiteral extends LiteralExpression, Declaration {
     kind: SyntaxKind.IntegerLiteral;
 }

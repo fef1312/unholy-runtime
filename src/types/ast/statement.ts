@@ -47,6 +47,7 @@ export interface EmptyStatement extends Statement {
 
 export interface ExpressionStatement extends Statement {
     kind: SyntaxKind.ExpressionStatement;
+    expression: Expression;
 }
 
 export interface IfStatement extends Statement {
