@@ -416,7 +416,7 @@ export default class Parser implements IParser {
      */
     private assertContext(required: ParsingContextFlags, loose: boolean = true) {
         const masked = this.context & required;
-        if (loose && masked !== 0 || masked !== this.context) {
+        if (loose && masked === 0 || !loose && masked !== this.context) {
             throw new UnholyParserError(
                 `"${this.token.rawText}" not allowed in this context`,
                 this.token
