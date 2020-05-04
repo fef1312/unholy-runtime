@@ -94,7 +94,7 @@ function visitStatement(cb: WalkCallback, node: Statement, depth: number, leaf?:
             visitExpressionStatement(cb, node as ExpressionStatement, depth, leaf);
             return;
     }
-    cb(node, depth, "Statement <~unimplemented~>", leaf);
+    cb(node, depth, "Statement < ~unimplemented~ >", leaf);
 }
 
 function visitBlockStatement(cb: WalkCallback, node: BlockStatement, depth: number, leaf?: string) {
@@ -164,7 +164,7 @@ function visitParameterDeclaration(cb: WalkCallback, node: ParameterDeclaration,
 }
 
 function visitIdentifier(cb: WalkCallback, node: Identifier, depth: number, leaf?: string) {
-    cb(node, depth, `Identifier <${node.name}>`, leaf);
+    cb(node, depth, `Identifier < ${node.name} >`, leaf);
 }
 
 function visitType(cb: WalkCallback, node: TypeNode, depth: number, leaf?: string) {
@@ -172,14 +172,14 @@ function visitType(cb: WalkCallback, node: TypeNode, depth: number, leaf?: strin
         case SyntaxKind.BoolKeyword:
         case SyntaxKind.IntKeyword:
         case SyntaxKind.VoidKeyword:
-            cb(node, depth, `TypeNode <${tokenToString((node as KeywordTypeNode).kind)}>`, leaf);
+            cb(node, depth, `TypeNode < ${tokenToString((node as KeywordTypeNode).kind)} >`, leaf);
             return;
     }
-    cb(node, depth, "TypeNode <~unimplemented~>");
+    cb(node, depth, "TypeNode < ~unimplemented~ >");
 }
 
 function visitToken(cb: WalkCallback, node: TokenNode<SyntaxKind>, depth: number, leaf?: string) {
-    cb(node, depth, `Token <${tokenToString(node.kind)}>`, leaf);
+    cb(node, depth, `Token < ${tokenToString(node.kind)} >`, leaf);
 }
 
 function visitExpression(cb: WalkCallback, node: Expression, depth: number, leaf?: string) {
@@ -193,9 +193,13 @@ function visitExpression(cb: WalkCallback, node: Expression, depth: number, leaf
         case SyntaxKind.IntegerLiteral:
             visitIntegerLiteral(cb, node as IntegerLiteral, depth, leaf);
             return;
+        case SyntaxKind.TrueKeyword:
+        case SyntaxKind.FalseKeyword:
+            cb(node, depth, `BoolLiteral < ${tokenToString(node.kind)} >`, leaf);
+            return;
     }
 
-    cb(node, depth, "Expression <~unimplemented~>", leaf);
+    cb(node, depth, "Expression < ~unimplemented~ >", leaf);
 }
 
 function visitBinaryExpression(cb: WalkCallback, node: BinaryExpression, depth: number,
@@ -207,5 +211,5 @@ function visitBinaryExpression(cb: WalkCallback, node: BinaryExpression, depth: 
 }
 
 function visitIntegerLiteral(cb: WalkCallback, node: IntegerLiteral, depth: number, leaf?: string) {
-    cb(node, depth, `IntegerLiteral <${node.text}>`, leaf);
+    cb(node, depth, `IntegerLiteral < ${node.text} >`, leaf);
 }

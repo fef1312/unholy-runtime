@@ -36,7 +36,7 @@ import alloc from "../utils/alloc";
 import { SyntaxKind } from "../types/syntax";
 import type IScanner from "../types/scanner";
 import Scanner from "../lexer/scanner";
-import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement, IfStatement } from "../types/ast/statement";
+import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement, IfStatement, ExpressionStatement } from "../types/ast/statement";
 import { UnholyParserError, UnholySyntaxError } from "../utils/errors";
 import { VarDeclaration, FuncDeclaration, ParameterDeclaration, Expression, PrimaryExpression, BinaryExpression, IntegerLiteral, BoolLiteral } from "../types/ast/expression";
 import { tokenToString } from "../lexer/token-maps";
@@ -155,6 +155,10 @@ export default class Parser implements IParser {
                 return this.parseReturnStatement();
         }
 
+        if (isStartOfExpression(this.token.kind)) {
+            return this.parseExpressionStatement();
+        }
+
         if (this.token.kind === SyntaxKind.EndOfFileToken) {
             throw new UnholyParserError("Unexpected end of file", this.token);
         } else {
@@ -267,6 +271,16 @@ export default class Parser implements IParser {
         return this.finalizeNode(stmt);
     }
 
+    private parseExpressionStatement(): ExpressionStatement {
+        this.assertContext(ParsingContextFlags.BlockStatements);
+        const node = this.makeNode(SyntaxKind.ExpressionStatement);
+        this.pushParent(node);
+        node.expression = this.parseExpression();
+        this.popParent();
+        this.assertKind(SyntaxKind.SemicolonToken);
+        return this.finalizeNode(node);
+    }
+
     /*
      * Declarations
      */
@@ -280,7 +294,13 @@ export default class Parser implements IParser {
         if (this.consumeOptional(SyntaxKind.ColonToken)) {
             node.type = this.parseType(/* consume */ true);
         }
-        this.consume(SyntaxKind.SemicolonToken);
+        if (this.consumeOptional(SyntaxKind.EqualsToken)) {
+            this.consume();
+            node.initializer = this.parseExpression();
+            this.assertKind(SyntaxKind.SemicolonToken);
+        } else {
+            this.consume(SyntaxKind.SemicolonToken);
+        }
 
         this.popParent();
         return this.finalizeNode(node);
