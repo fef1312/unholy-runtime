@@ -140,9 +140,9 @@ export interface BinaryExpression extends Expression {
  * - _{@linkcode Identifier}_ `:` _Type_
  * - _ArgumentList_ `,` _{@linkcode Identifier}_ `:` _Type_
  */
-export interface CallExpression extends LeftHandSideExpression, Declaration {
+export interface CallExpression extends PrimaryExpression {
     kind: SyntaxKind.CallExpression;
-    expression: LeftHandSideExpression;
+    callee: LeftHandSideExpression;
     args: Expression[];
 }
 

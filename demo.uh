@@ -15,7 +15,7 @@ func main(): int {
     if (2 > 3) {
         var2 = 3;
     } else {
-        let var4: int;
+        anotherFunc(500, true);
     }
 }
 

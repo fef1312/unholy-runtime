@@ -48,6 +48,7 @@ import type {
     Expression,
     BinaryExpression,
     IntegerLiteral,
+    CallExpression,
 } from "../types/ast/expression";
 import type { TypeNode, KeywordTypeNode } from "../types/ast/type";
 import TokenNode from "../types/ast/token";
@@ -197,6 +198,9 @@ function visitExpression(cb: WalkCallback, node: Expression, depth: number, leaf
         case SyntaxKind.FalseKeyword:
             cb(node, depth, `BoolLiteral < ${tokenToString(node.kind)} >`, leaf);
             return;
+        case SyntaxKind.CallExpression:
+            visitCallExpression(cb, node as CallExpression, depth, leaf);
+            return;
     }
 
     cb(node, depth, "Expression < ~unimplemented~ >", leaf);
@@ -208,6 +212,14 @@ function visitBinaryExpression(cb: WalkCallback, node: BinaryExpression, depth: 
     visitExpression(cb, node.left, depth + 1, "left");
     visitToken(cb, node.operatorToken, depth + 1, "operatorToken");
     visitExpression(cb, node.right, depth + 1, "right");
+}
+
+function visitCallExpression(cb: WalkCallback, node: CallExpression, depth: number, leaf?: string) {
+    cb(node, depth, "CallExpression", leaf);
+    visitExpression(cb, node.callee, depth + 1, "callee");
+    for (const arg of node.args) {
+        visitExpression(cb, arg, depth + 1, "param");
+    }
 }
 
 function visitIntegerLiteral(cb: WalkCallback, node: IntegerLiteral, depth: number, leaf?: string) {

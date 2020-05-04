@@ -224,6 +224,10 @@ export default class Scanner implements IScanner {
                             this.pos += 2;
                             break;
                         }
+                        if (this.text.charCodeAt(this.pos) == CharCodes.LineFeed) {
+                            this.line++;
+                            this.lineStart = this.pos + 1;
+                        }
                     }
                     if (!terminated) {
                         throw new UnholySyntaxError(

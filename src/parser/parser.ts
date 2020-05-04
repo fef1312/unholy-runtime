@@ -38,7 +38,7 @@ import type IScanner from "../types/scanner";
 import Scanner from "../lexer/scanner";
 import type { Statement, BlockStatement, VarDeclarationStatement, FuncDeclarationStatement, ReturnStatement, IfStatement, ExpressionStatement } from "../types/ast/statement";
 import { UnholyParserError, UnholySyntaxError } from "../utils/errors";
-import { VarDeclaration, FuncDeclaration, ParameterDeclaration, Expression, PrimaryExpression, BinaryExpression, IntegerLiteral, BoolLiteral } from "../types/ast/expression";
+import { VarDeclaration, FuncDeclaration, ParameterDeclaration, Expression, PrimaryExpression, BinaryExpression, IntegerLiteral, BoolLiteral, CallExpression, LeftHandSideExpression } from "../types/ast/expression";
 import { tokenToString } from "../lexer/token-maps";
 import { TypeNode, KeywordTypeNode } from "../types/ast/type";
 import AutoNode from "../types/ast/auto-node";
@@ -203,6 +203,7 @@ export default class Parser implements IParser {
         this.pushParent(stmt);
 
         stmt.declaration = this.parseVarDeclaration();
+        this.consume(SyntaxKind.SemicolonToken);
 
         this.popParent();
         this.popContext();
@@ -235,7 +236,7 @@ export default class Parser implements IParser {
         this.consume(SyntaxKind.OpenParenToken);
         this.consume();
         node.condition = this.parseExpression();
-        this.assertKind(SyntaxKind.CloseParenToken);
+        this.consume(SyntaxKind.CloseParenToken);
 
         this.consumeOptional(SyntaxKind.OpenBraceToken);
         node.thenStatement = this.parseStatement();
@@ -266,6 +267,7 @@ export default class Parser implements IParser {
             this.pushParent(stmt);
             stmt.expression = this.parseExpression();
             this.popParent();
+            this.consume(SyntaxKind.SemicolonToken);
         }
 
         return this.finalizeNode(stmt);
@@ -277,7 +279,7 @@ export default class Parser implements IParser {
         this.pushParent(node);
         node.expression = this.parseExpression();
         this.popParent();
-        this.assertKind(SyntaxKind.SemicolonToken);
+        this.consume(SyntaxKind.SemicolonToken);
         return this.finalizeNode(node);
     }
 
@@ -297,9 +299,6 @@ export default class Parser implements IParser {
         if (this.consumeOptional(SyntaxKind.EqualsToken)) {
             this.consume();
             node.initializer = this.parseExpression();
-            this.assertKind(SyntaxKind.SemicolonToken);
-        } else {
-            this.consume(SyntaxKind.SemicolonToken);
         }
 
         this.popParent();
@@ -442,6 +441,10 @@ export default class Parser implements IParser {
         if (isAssignmentOperator(this.token.kind)) {
             const operatorToken = this.token;
             this.consume();
+            /*
+             * As far as the AST is concerned, there is no difference
+             * between AssignmentExpressions and BinaryExpressions
+             */
             return this.makeBinaryExpression(
                 expr,
                 this.makeToken(operatorToken) as BinaryOperatorTokenNode,
@@ -465,7 +468,8 @@ export default class Parser implements IParser {
      */
     private parseBinaryExpressionOrHigher(precedence: number = 0): Expression {
         const leftOperand = this.parsePrimaryExpression();
-        if (getBinaryOperatorPrecedence(this.consume().kind) === -1) {
+        const operator = this.speculate(token => getBinaryOperatorPrecedence(token.kind) !== -1);
+        if (!operator) {
             return leftOperand; /* This is not a binary expression */
         }
         return this.parseBinaryExpressionRest(precedence, leftOperand);
@@ -497,9 +501,14 @@ export default class Parser implements IParser {
     }
 
     private parsePrimaryExpression(consume: boolean = false): PrimaryExpression {
+        let expr: PrimaryExpression;
         switch (this.token.kind) {
             case SyntaxKind.Identifier:
-                return this.parseIdentifier(consume);
+                expr = this.parseIdentifier(consume);
+                if (this.consumeOptional(SyntaxKind.OpenParenToken)) {
+                    expr = this.parseCallExpression(expr);
+                }
+                break;
             case SyntaxKind.IntegerLiteral:
                 return this.parseIntegerLiteral();
             case SyntaxKind.TrueKeyword:
@@ -508,6 +517,34 @@ export default class Parser implements IParser {
             default:
                 throw new UnholyParserError(`Unexpected token "${this.token.rawText}"`, this.token);
         }
+
+        return expr;
+    }
+
+    /**
+     * Parse a function call.
+     *
+     * @param callee The function that is being called.
+     */
+    private parseCallExpression(callee: LeftHandSideExpression): CallExpression {
+        this.assertKind(SyntaxKind.OpenParenToken);
+        const callExpr = this.makeNode(SyntaxKind.CallExpression);
+        callExpr.callee = callee;
+        callee.parent = callExpr;
+
+        /* check if we have parameters */
+        if (this.consume().kind !== SyntaxKind.CloseParenToken) {
+            this.pushContext(this.context | ParsingContextFlags.ArgExpressions);
+            this.pushParent(callExpr);
+            callExpr.args = this.parseDelimitedList(
+                () => this.parseExpression(),
+                SyntaxKind.CloseParenToken
+            );
+            this.popParent();
+            this.popContext();
+        }
+
+        return this.finalizeNode(callExpr);
     }
 
     private parseBoolLiteral(consume: boolean = false): BoolLiteral {
@@ -569,6 +606,28 @@ export default class Parser implements IParser {
             }
             return false;
         });
+    }
+
+    /**
+     * Invoke `fn` with the next token.  If it returns `true`, this function behaves the same as
+     * {@linkcode .consume} when called with no arguments.  If the callback returns `false`, the
+     * current token remains unalterred and this method returns `false`.
+     *
+     * @param fn The callback that will be invoked with the scanned token.
+     */
+    private speculate(fn: (nextToken: ISemanticElement) => boolean): ISemanticElement | false {
+        let speculationResult = this.scanner.tryScan(() => {
+            const token = this.scanner.nextToken();
+            if (fn(token)) {
+                return token;
+            } else {
+                return false;
+            }
+        });
+        if (speculationResult) {
+            this.token = speculationResult;
+        }
+        return speculationResult;
     }
 
     /**
