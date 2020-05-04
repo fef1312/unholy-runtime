@@ -8,14 +8,13 @@ let someVariable: int;
 /**/// There are two different kinds of comments in this line
 // Single-line comment
 
-
 func main(): int {
     let var2: int;
     let someBool: bool = true;
     if (2 > 3) {
         var2 = 3;
     } else {
-        anotherFunc(500, true);
+        anotherFunc(500, anotherFunc(100, someBool));
     }
 }
 
