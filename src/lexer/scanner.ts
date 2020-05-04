@@ -214,7 +214,9 @@ export default class Scanner implements IScanner {
             case CharCodes._8:
             case CharCodes._9:
                 const num = this.scanDigits(10);
-                return this.makeElem(SyntaxKind.IntegerLiteral, num);
+                const elem = this.makeElem(SyntaxKind.IntegerLiteral, num);
+                elem.value = num;
+                return elem;
         }
 
         /* isIentifierStart() also returns true for keywords */
@@ -230,6 +232,8 @@ export default class Scanner implements IScanner {
 
             const value = this.text.substring(identifierStart, this.pos);
             const elem = this.makeElem<SyntaxKind>(this.getIdentifierToken(value), value);
+            /* makeElem only sets the raw text */
+            elem.value = value;
 
             if (elem.kind === SyntaxKind.Identifier && isFutureReserveWord(value)) {
                 elem.kind = SyntaxKind.Unknown;
