@@ -475,11 +475,11 @@ export default class Parser implements IParser {
     }
 
     private parseIntegerLiteral(consume: boolean = false): IntegerLiteral {
-        if (this.token.kind !== SyntaxKind.IntegerLiteral) {
-            throw new UnholyParserError("Expected an integer literal", this.token);
-        }
-
-        const node = this.makeNode(SyntaxKind.IntegerLiteral);
+        const node = this.makeNode(
+            consume
+                ? this.consume(SyntaxKind.IntegerLiteral)
+                : this.assertKind(SyntaxKind.IntegerLiteral)
+        );
         node.text = this.token.value ! ;
         return this.finalizeNode(node);
     }
