@@ -11,6 +11,17 @@ actual interpreter which executed the instructions of that tree.
 This is an early alpha version; only a minimal subset of the language is supported.
 By the way: the language specs are only a vague phantasy in my head at the moment.
 
+## Usage
+
+After cloning the repository any installing all required dependencies with `npm i`, type
+
+```
+npm start <program.uh>
+```
+
+to start the program.  Since only the abstract syntax tree generator is implemented at the moment,
+the program will print the parsed tree to the standard output and then exit.
+
 ## License
 
 Copyright &copy; 2020 Felix Kopp <sandtler@sandtler.club>
