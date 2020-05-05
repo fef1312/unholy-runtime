@@ -65,7 +65,7 @@ import { isStartOfExpression, getBinaryOperatorPrecedence, isAssignmentOperator 
  * only allowed in function bodies).  Parsing methods whose statements are only allowed in certain
  * contexts should always call {@linkcode .assertContext} in order to make sure they don't
  * accidentally accept something that would be syntactically invalid in the current context.
- * Likewise, parsing methods that enter a new context ned to set the corresponding context flags ba
+ * Likewise, parsing methods that enter a new context nedd to set the corresponding context flags by
  * a call to {@linkcode .pushContext}, and (before returning) restore the context to how it was
  * before with {@linkcode .popContext}.
  *
